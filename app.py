@@ -302,28 +302,29 @@ with t_fin:
     st.markdown('<div class="section-title">Fluxo de Caixa Mensal — Cenário Realista</div>',
                 unsafe_allow_html=True)
 
-    # Waterfall mensal M6
-    cats = ["Receita\nPUDO", f"Receita\n{segmento_label}", "Impostos", "CMV",
-            "Desp.\nOperac.", "Depreciação", "EBITDA", "Lucro\nLíquido"]
-    vals = [rec_log_base, rec_prod_m6, -imp_m6, -cmv_prod_m6,
-            -opex_fixo, -depreciacao, ebitda_m6, lucro_m6]
-    cores_wf = ["#2563eb" if v > 0 else "#dc2626" for v in vals]
-    cores_wf[-2] = "#7c3aed"
-    cores_wf[-1] = "#16a34a" if lucro_m6 >= 0 else "#dc2626"
+    # Decomposição de resultado Mês 6 (barras horizontais)
+    cats_h = ["Rec. PUDO", f"Rec. {segmento_label.split()[-1]}", "Impostos",
+              "CMV Produto", "Desp. Operacionais", "Depreciação", "EBITDA", "Lucro Líquido"]
+    vals_h = [rec_log_base, rec_prod_m6, -imp_m6, -cmv_prod_m6,
+              -opex_fixo, -depreciacao, ebitda_m6, lucro_m6]
+    cores_h = ["#2563eb","#2563eb","#ef4444","#ef4444","#ef4444","#f97316","#7c3aed",
+               "#16a34a" if lucro_m6 >= 0 else "#dc2626"]
 
-    fig_wf = go.Figure(go.Waterfall(
-        name="Mês 6", orientation="v",
-        measure=["relative","relative","relative","relative",
-                 "relative","relative","total","total"],
-        x=cats, y=vals,
-        connector=dict(line=dict(color="#ccc", width=1)),
-        marker_color=cores_wf,
-        text=[f"R$ {abs(v):,.0f}".replace(",",".") for v in vals],
+    fig_wf = go.Figure()
+    fig_wf.add_trace(go.Bar(
+        x=vals_h, y=cats_h, orientation="h",
+        marker_color=cores_h,
+        text=[f"R$ {abs(v):,.0f}".replace(",", ".") for v in vals_h],
         textposition="outside",
+        cliponaxis=False,
     ))
-    fig_wf.update_layout(height=340, plot_bgcolor="white", paper_bgcolor="white",
-        showlegend=False, margin=dict(l=0,r=0,t=20,b=0))
-    fig_wf.update_yaxes(gridcolor="#f0f0f0")
+    fig_wf.add_vline(x=0, line_color="#666", line_width=1.5)
+    fig_wf.update_layout(
+        height=340, plot_bgcolor="white", paper_bgcolor="white",
+        showlegend=False, margin=dict(l=0, r=120, t=10, b=0),
+        xaxis=dict(gridcolor="#f0f0f0", zeroline=False),
+        yaxis=dict(autorange="reversed"),
+    )
     st.plotly_chart(fig_wf, use_container_width=True)
 
     st.markdown('<div class="section-title">Tabela de Fluxo de Caixa — 12 Meses</div>',
