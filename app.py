@@ -871,240 +871,312 @@ Comissão registrada
 **Regulação e licenças:** [Portal Empreendedor](https://www.gov.br/empresas-e-negocios/pt-br/empreendedor) · [JUCESP](https://www.jucesp.sp.gov.br) · [Alvará SP](https://www.prefeitura.sp.gov.br/cidade/secretarias/licenciamentos)
 """)
 
+# ── helpers drawing ──────────────────────────────────────────────────────────
+TIPOS_ZONA_G = {
+    "Balcão / Caixa":      {"cor": "#bfdbfe", "borda": "#2563eb", "icone": "🔵"},
+    "Exposição / Vitrine": {"cor": "#bbf7d0", "borda": "#16a34a", "icone": "🟢"},
+    "Estoque PUDO":        {"cor": "#ddd6fe", "borda": "#7c3aed", "icone": "🟣"},
+    "Estoque Produto":     {"cor": "#fef08a", "borda": "#ca8a04", "icone": "🟡"},
+    "Prateleira Parede":   {"cor": "#fed7aa", "borda": "#ea580c", "icone": "🟠"},
+    "Gôndola Central":     {"cor": "#d1fae5", "borda": "#059669", "icone": "🟩"},
+    "Banheiro":            {"cor": "#e2e8f0", "borda": "#64748b", "icone": "⬜"},
+    "Entrada / Fachada":   {"cor": "#fef9c3", "borda": "#d97706", "icone": "🚪"},
+    "Circulação":          {"cor": "#f8fafc", "borda": "#94a3b8", "icone": "➡️"},
+    "Outro":               {"cor": "#fce7f3", "borda": "#be185d", "icone": "🔴"},
+}
+
+TEMPLATES_G = {
+    "45 m² — Linear (9×5m)": {
+        "lw": 9.0, "lh": 5.0,
+        "desc": "Ideal para lojas estreitas em corredor. PUDO na frente, estoque ao fundo.",
+        "zonas": [
+            ("Entrada / Fachada",   0,0,9,0.8),
+            ("Balcão / Caixa",      6,0.8,9,3.5),
+            ("Exposição / Vitrine", 0,0.8,6,3.5),
+            ("Estoque PUDO",        4.5,3.5,9,5),
+            ("Estoque Produto",     0,3.5,4.5,5),
+        ],
+    },
+    "60 m² — PUDO Front (8×7.5m)": {
+        "lw": 8.0, "lh": 7.5,
+        "desc": "Balcão PUDO na entrada, produto ao fundo. Maximiza visibilidade do serviço.",
+        "zonas": [
+            ("Entrada / Fachada",   0,0,8,1),
+            ("Balcão / Caixa",      5,1,8,4),
+            ("Exposição / Vitrine", 0,1,5,4),
+            ("Estoque Produto",     0,4,4,6.5),
+            ("Estoque PUDO",        4,4,8,6.5),
+            ("Circulação",          0,6.5,5.5,7.5),
+            ("Banheiro",            5.5,6.5,8,7.5),
+        ],
+    },
+    "60 m² — Loja em L (10×6m)": {
+        "lw": 10.0, "lh": 6.0,
+        "desc": "Formato L — produto ocupa a ala longa, PUDO na ala curta. Bom para esquinas.",
+        "zonas": [
+            ("Entrada / Fachada",   0,0,10,0.8),
+            ("Exposição / Vitrine", 0,0.8,7,3.5),
+            ("Balcão / Caixa",      7,0.8,10,3.5),
+            ("Gôndola Central",     2,1.2,2.5,3.2),
+            ("Gôndola Central",     4.5,1.2,5,3.2),
+            ("Estoque PUDO",        5,3.5,10,6),
+            ("Estoque Produto",     0,3.5,5,6),
+            ("Banheiro",            8.5,3.5,10,5),
+        ],
+    },
+    "80 m² — Serviços + Varejo (10×8m)": {
+        "lw": 10.0, "lh": 8.0,
+        "desc": "Separação clara entre área de serviços (PUDO/logística) e varejo. Ideal para alto volume.",
+        "zonas": [
+            ("Entrada / Fachada",   0,0,10,0.8),
+            ("Balcão / Caixa",      6.5,0.8,10,4),
+            ("Exposição / Vitrine", 0,0.8,6.5,4),
+            ("Gôndola Central",     1.5,1.3,2,3.7),
+            ("Gôndola Central",     3.5,1.3,4,3.7),
+            ("Gôndola Central",     5.5,1.3,6,3.7),
+            ("Estoque PUDO",        5,4,10,7.5),
+            ("Estoque Produto",     0,4,5,7.5),
+            ("Banheiro",            0,7.5,2.5,8),
+            ("Circulação",          2.5,7.5,10,8),
+        ],
+    },
+    "100 m² — Hub Logístico (12.5×8m)": {
+        "lw": 12.5, "lh": 8.0,
+        "desc": "Para alto volume PUDO + loja completa. Zona de triagem separada, estoque grande.",
+        "zonas": [
+            ("Entrada / Fachada",   0,0,12.5,1),
+            ("Balcão / Caixa",      8,1,12.5,4),
+            ("Exposição / Vitrine", 0,1,8,4.5),
+            ("Gôndola Central",     2,1.5,2.5,4),
+            ("Gôndola Central",     4.5,1.5,5,4),
+            ("Gôndola Central",     6.5,1.5,7,4),
+            ("Estoque PUDO",        7,4,12.5,7.5),
+            ("Estoque Produto",     0,4.5,7,7.5),
+            ("Banheiro",            10.5,7.5,12.5,8),
+            ("Circulação",          0,7.5,10.5,8),
+        ],
+    },
+    "Em branco": {"lw": 8.0, "lh": 7.5, "desc": "", "zonas": []},
+}
+
+def render_planta(zonas, lw, lh, selected_idx=None, height=520):
+    fig = go.Figure()
+    fig.add_shape(type="rect", x0=0, y0=0, x1=lw, y1=lh,
+        fillcolor="#f8fafc", line=dict(color="#1e293b", width=3))
+    for xi in [i*0.5 for i in range(int(lw/0.5)+2)]:
+        fig.add_shape(type="line", x0=xi, y0=0, x1=xi, y1=lh,
+            line=dict(color="#e2e8f0", width=0.4 if xi%1 else 0.9, dash="dot"))
+    for yi in [i*0.5 for i in range(int(lh/0.5)+2)]:
+        fig.add_shape(type="line", x0=0, y0=yi, x1=lw, y1=yi,
+            line=dict(color="#e2e8f0", width=0.4 if yi%1 else 0.9, dash="dot"))
+    for xi in range(int(lw)+1):
+        fig.add_annotation(x=xi, y=-0.38, text=f"{xi}m",
+            showarrow=False, font=dict(size=8, color="#64748b"))
+    for yi in range(int(lh)+1):
+        fig.add_annotation(x=-0.42, y=yi, text=f"{yi}m",
+            showarrow=False, font=dict(size=8, color="#64748b"))
+    for i, z in enumerate(zonas):
+        cfg  = TIPOS_ZONA_G.get(z["tipo"], TIPOS_ZONA_G["Outro"])
+        area = (z["x1"]-z["x0"])*(z["y1"]-z["y0"])
+        cx   = (z["x0"]+z["x1"])/2
+        cy   = (z["y0"]+z["y1"])/2
+        borda = "#f59e0b" if i == selected_idx else cfg["borda"]
+        lw_b  = 3.5       if i == selected_idx else 1.8
+        fig.add_shape(type="rect",
+            x0=z["x0"], y0=z["y0"], x1=z["x1"], y1=z["y1"],
+            fillcolor=cfg["cor"], line=dict(color=borda, width=lw_b), opacity=0.92)
+        fig.add_annotation(x=cx, y=cy+0.13,
+            text=f"<b>{z['nome']}</b>",
+            showarrow=False, font=dict(size=9.5), align="center",
+            bgcolor="rgba(255,255,255,0.75)", borderpad=2)
+        fig.add_annotation(x=cx, y=cy-0.16,
+            text=f"{z['x1']-z['x0']:.1f}×{z['y1']-z['y0']:.1f}m = {area:.1f}m²",
+            showarrow=False, font=dict(size=8, color="#555"), align="center")
+    area_usada = sum((z["x1"]-z["x0"])*(z["y1"]-z["y0"]) for z in zonas)
+    total = lw*lh
+    fig.update_layout(
+        height=height, plot_bgcolor="white", paper_bgcolor="white",
+        showlegend=False, margin=dict(l=38, r=10, t=36, b=38),
+        title=dict(
+            text=f"Área total: {total:.0f} m²  |  Ocupado: {area_usada:.1f} m² ({area_usada/total*100:.0f}%)  |  Livre: {total-area_usada:.1f} m²",
+            font=dict(size=11, color="#475569"), x=0.5),
+        xaxis=dict(range=[-0.65, lw+0.3], showgrid=False, zeroline=False,
+                   showticklabels=False, fixedrange=True),
+        yaxis=dict(range=[-0.65, lh+0.4], showgrid=False, zeroline=False,
+                   showticklabels=False, scaleanchor="x", fixedrange=True),
+    )
+    return fig
+
 # ════════════════════════════════════════════════
 # TAB 5 — DESENHO DA ESTRUTURA
 # ════════════════════════════════════════════════
 with t_draw:
+    # ── session state
+    for k, v in [("zonas",[]),("lw",8.0),("lh",7.5),("sel_idx",None)]:
+        if k not in st.session_state:
+            st.session_state[k] = v
 
-    TIPOS_ZONA = {
-        "Balcão / Caixa":      {"cor": "#bfdbfe", "borda": "#2563eb", "icone": "🔵"},
-        "Exposição / Vitrine": {"cor": "#bbf7d0", "borda": "#16a34a", "icone": "🟢"},
-        "Estoque PUDO":        {"cor": "#ddd6fe", "borda": "#7c3aed", "icone": "🟣"},
-        "Estoque Produto":     {"cor": "#fef08a", "borda": "#ca8a04", "icone": "🟡"},
-        "Prateleira Parede":   {"cor": "#fed7aa", "borda": "#ea580c", "icone": "🟠"},
-        "Gôndola Central":     {"cor": "#d1fae5", "borda": "#059669", "icone": "🟩"},
-        "Banheiro":            {"cor": "#e2e8f0", "borda": "#64748b", "icone": "⬜"},
-        "Entrada / Fachada":   {"cor": "#fef9c3", "borda": "#d97706", "icone": "🚪"},
-        "Circulação":          {"cor": "#f8fafc", "borda": "#94a3b8", "icone": "➡️"},
-        "Outro":               {"cor": "#fce7f3", "borda": "#be185d", "icone": "🔴"},
-    }
+    # ── Galeria de layouts sugeridos
+    with st.expander("💡 Layouts Sugeridos — clique para carregar", expanded=True):
+        st.markdown("Escolha o modelo que melhor se encaixa no seu espaço e objetivo:")
+        gcols = st.columns(5)
+        for gi, (nome_t, tdata) in enumerate(TEMPLATES_G.items()):
+            with gcols[gi % 5]:
+                # mini preview
+                mfig = render_planta(
+                    [{"tipo": t,"nome": t,"x0":x0,"y0":y0,"x1":x1,"y1":y1}
+                     for t,x0,y0,x1,y1 in tdata["zonas"]],
+                    tdata["lw"], tdata["lh"], height=160)
+                mfig.update_layout(
+                    title=None, margin=dict(l=0,r=0,t=0,b=0),
+                    xaxis=dict(showticklabels=False, fixedrange=True),
+                    yaxis=dict(showticklabels=False, fixedrange=True),
+                )
+                st.plotly_chart(mfig, use_container_width=True, key=f"prev_{gi}")
+                st.caption(f"**{nome_t}**")
+                if tdata["desc"]:
+                    st.caption(tdata["desc"])
+                if st.button("Usar este", key=f"use_{gi}", use_container_width=True):
+                    st.session_state.zonas = [
+                        {"tipo":t,"nome":t,"x0":x0,"y0":y0,"x1":x1,"y1":y1}
+                        for t,x0,y0,x1,y1 in tdata["zonas"]
+                    ]
+                    st.session_state.lw = tdata["lw"]
+                    st.session_state.lh = tdata["lh"]
+                    st.session_state.sel_idx = None
+                    st.rerun()
 
-    TEMPLATES = {
-        "Ponto 45 m² (9m × 5m)": [
-            ("Entrada / Fachada",   0.0, 0.0, 9.0, 0.8),
-            ("Exposição / Vitrine", 0.0, 0.8, 5.5, 3.5),
-            ("Balcão / Caixa",      5.5, 0.8, 9.0, 3.5),
-            ("Estoque PUDO",        0.0, 3.5, 4.5, 5.0),
-            ("Estoque Produto",     4.5, 3.5, 9.0, 5.0),
-        ],
-        "Ponto 60 m² (8m × 7,5m)": [
-            ("Entrada / Fachada",   0.0, 0.0, 8.0, 1.0),
-            ("Exposição / Vitrine", 0.0, 1.0, 5.0, 4.0),
-            ("Balcão / Caixa",      5.0, 1.0, 8.0, 4.0),
-            ("Estoque Produto",     0.0, 4.0, 4.0, 6.5),
-            ("Estoque PUDO",        4.0, 4.0, 8.0, 6.5),
-            ("Circulação",          0.0, 6.5, 5.5, 7.5),
-            ("Banheiro",            5.5, 6.5, 8.0, 7.5),
-        ],
-        "Ponto 80 m² (10m × 8m)": [
-            ("Entrada / Fachada",   0.0, 0.0,10.0, 1.0),
-            ("Exposição / Vitrine", 0.0, 1.0, 6.0, 5.0),
-            ("Balcão / Caixa",      6.0, 1.0,10.0, 4.0),
-            ("Estoque PUDO",        6.0, 4.0,10.0, 7.5),
-            ("Estoque Produto",     0.0, 5.0, 5.0, 7.5),
-            ("Gôndola Central",     2.0, 1.5, 2.5, 4.5),
-            ("Gôndola Central",     4.0, 1.5, 4.5, 4.5),
-            ("Banheiro",            5.0, 5.0, 6.0, 7.5),
-            ("Circulação",          0.0, 7.5,10.0, 8.0),
-        ],
-        "Em branco": [],
-    }
+    st.divider()
 
-    # ── Session state
-    if "zonas" not in st.session_state:
-        st.session_state.zonas = []
-    if "lw" not in st.session_state:
-        st.session_state.lw = 10.0
-    if "lh" not in st.session_state:
-        st.session_state.lh = 8.0
+    # ── Editor principal
+    left, mid = st.columns([1, 2.4])
 
-    # ── Layout: controles à esquerda, planta à direita
-    ctrl, planta = st.columns([1, 2.5])
+    with left:
+        st.markdown("#### 📐 Controles")
 
-    with ctrl:
-        st.markdown("#### 📐 Editor de Planta")
-
-        # Template loader
-        tmpl = st.selectbox("Carregar template", list(TEMPLATES.keys()), index=1)
-        if st.button("Carregar template", use_container_width=True):
-            st.session_state.zonas = [
-                {"tipo": t, "x0": x0, "y0": y0, "x1": x1, "y1": y1,
-                 "nome": t, "id": i}
-                for i, (t, x0, y0, x1, y1) in enumerate(TEMPLATES[tmpl])
-            ]
-            # set canvas size from template name
-            if "9m" in tmpl:
-                st.session_state.lw, st.session_state.lh = 9.0, 5.0
-            elif "10m" in tmpl:
-                st.session_state.lw, st.session_state.lh = 10.0, 8.0
-            else:
-                st.session_state.lw, st.session_state.lh = 8.0, 7.5
+        # Dimensões
+        st.markdown("**Imóvel**")
+        c1, c2 = st.columns(2)
+        st.session_state.lw = c1.number_input("Largura m", 3.0, 40.0,
+            float(st.session_state.lw), 0.5, key="inp_lw2")
+        st.session_state.lh = c2.number_input("Profund. m", 3.0, 40.0,
+            float(st.session_state.lh), 0.5, key="inp_lh2")
 
         st.divider()
 
-        # Canvas size
-        st.markdown("**Dimensões do imóvel**")
-        cw, ch = st.columns(2)
-        st.session_state.lw = cw.number_input("Largura (m)", 3.0, 30.0,
-            float(st.session_state.lw), 0.5, key="inp_lw")
-        st.session_state.lh = ch.number_input("Profund. (m)", 3.0, 30.0,
-            float(st.session_state.lh), 0.5, key="inp_lh")
+        # ── Selecionar e editar zona existente
+        if st.session_state.zonas:
+            st.markdown("**✏️ Editar zona existente**")
+            nomes_sel = [f"{i+1}. {z['nome']}" for i, z in enumerate(st.session_state.zonas)]
+            sel_label = st.selectbox("Selecionar zona", ["— nenhuma —"] + nomes_sel, key="sel_label")
+            sel_idx = None
+            if sel_label != "— nenhuma —":
+                sel_idx = int(sel_label.split(".")[0]) - 1
+                st.session_state.sel_idx = sel_idx
 
-        area_total = st.session_state.lw * st.session_state.lh
-        st.markdown(f"**Área total: {area_total:.1f} m²**")
+            if sel_idx is not None:
+                z = st.session_state.zonas[sel_idx]
+                z["nome"]  = st.text_input("Rótulo",  z["nome"],  key="ed_nome")
+                z["tipo"]  = st.selectbox("Tipo", list(TIPOS_ZONA_G.keys()),
+                    index=list(TIPOS_ZONA_G.keys()).index(z["tipo"])
+                    if z["tipo"] in TIPOS_ZONA_G else 0, key="ed_tipo")
+
+                st.markdown("**Mover (passo 0,5 m)**")
+                mc = st.columns(3)
+                larg = z["x1"]-z["x0"]; prof = z["y1"]-z["y0"]
+                if mc[1].button("⬆", key="mv_u", use_container_width=True):
+                    z["y0"]+=0.5; z["y1"]+=0.5; st.rerun()
+                if mc[0].button("⬅", key="mv_l", use_container_width=True):
+                    z["x0"]-=0.5; z["x1"]-=0.5; st.rerun()
+                mc[1].markdown("<div style='text-align:center;font-size:18px'>✛</div>",
+                               unsafe_allow_html=True)
+                if mc[2].button("➡", key="mv_r", use_container_width=True):
+                    z["x0"]+=0.5; z["x1"]+=0.5; st.rerun()
+                if mc[1].button("⬇", key="mv_d", use_container_width=True):
+                    z["y0"]-=0.5; z["y1"]-=0.5; st.rerun()
+
+                st.markdown("**Redimensionar (passo 0,5 m)**")
+                rc = st.columns(2)
+                if rc[0].button("← Largura −", key="rs_wm", use_container_width=True) and larg>0.5:
+                    z["x1"]-=0.5; st.rerun()
+                if rc[1].button("Largura + →", key="rs_wp", use_container_width=True):
+                    z["x1"]+=0.5; st.rerun()
+                if rc[0].button("↑ Profund. −", key="rs_hm", use_container_width=True) and prof>0.5:
+                    z["y1"]-=0.5; st.rerun()
+                if rc[1].button("Profund. + ↓", key="rs_hp", use_container_width=True):
+                    z["y1"]+=0.5; st.rerun()
+
+                st.markdown("**Posição precisa**")
+                pc1, pc2 = st.columns(2)
+                nx0 = pc1.number_input("X início", 0.0, 40.0, float(z["x0"]), 0.5, key="px0")
+                ny0 = pc1.number_input("Y início", 0.0, 40.0, float(z["y0"]), 0.5, key="py0")
+                nx1 = pc2.number_input("X fim",    0.0, 40.0, float(z["x1"]), 0.5, key="px1")
+                ny1 = pc2.number_input("Y fim",    0.0, 40.0, float(z["y1"]), 0.5, key="py1")
+                if nx1>nx0 and ny1>ny0:
+                    z["x0"],z["y0"],z["x1"],z["y1"] = nx0,ny0,nx1,ny1
+
+                if st.button("🗑 Remover esta zona", key="del_sel", use_container_width=True):
+                    st.session_state.zonas.pop(sel_idx)
+                    st.session_state.sel_idx = None
+                    st.rerun()
 
         st.divider()
 
-        # Add zone form
-        st.markdown("**➕ Adicionar zona / mobiliário**")
-        with st.form("form_zona", clear_on_submit=True):
-            tipo = st.selectbox("Tipo", list(TIPOS_ZONA.keys()))
-            nome = st.text_input("Rótulo (opcional)", placeholder="ex: Balcão Principal")
-            f1, f2 = st.columns(2)
-            x0_f = f1.number_input("X início (m)", 0.0, 30.0, 0.0, 0.5)
-            y0_f = f1.number_input("Y início (m)", 0.0, 30.0, 0.0, 0.5)
-            x1_f = f2.number_input("X fim (m)",    0.0, 30.0, 2.0, 0.5)
-            y1_f = f2.number_input("Y fim (m)",    0.0, 30.0, 2.0, 0.5)
-            ok = st.form_submit_button("Adicionar", use_container_width=True)
-            if ok and x1_f > x0_f and y1_f > y0_f:
-                uid = len(st.session_state.zonas)
-                st.session_state.zonas.append({
-                    "tipo": tipo, "nome": nome or tipo,
-                    "x0": x0_f, "y0": y0_f, "x1": x1_f, "y1": y1_f,
-                    "id": uid,
-                })
-
-        st.divider()
-
-        # List + delete
-        st.markdown("**🗂 Zonas adicionadas**")
-        if not st.session_state.zonas:
-            st.caption("Nenhuma zona ainda. Carregue um template ou adicione manualmente.")
-        else:
-            for i, z in enumerate(st.session_state.zonas):
-                icone = TIPOS_ZONA.get(z["tipo"], TIPOS_ZONA["Outro"])["icone"]
-                area_z = (z["x1"]-z["x0"]) * (z["y1"]-z["y0"])
-                label  = f"{icone} {z['nome']}  ({area_z:.1f} m²)"
-                col_z, col_del = st.columns([4, 1])
-                col_z.markdown(f"<small>{label}</small>", unsafe_allow_html=True)
-                if col_del.button("✕", key=f"del_{i}", help="Remover"):
-                    st.session_state.zonas.pop(i)
+        # ── Adicionar nova zona
+        st.markdown("**➕ Nova zona**")
+        with st.form("form_add", clear_on_submit=True):
+            tipo_n = st.selectbox("Tipo", list(TIPOS_ZONA_G.keys()), key="f_tipo")
+            nome_n = st.text_input("Rótulo", placeholder="ex: Balcão Principal", key="f_nome")
+            a1, a2 = st.columns(2)
+            ax0 = a1.number_input("X início", 0.0, 40.0, 0.0, 0.5, key="f_x0")
+            ay0 = a1.number_input("Y início", 0.0, 40.0, 0.0, 0.5, key="f_y0")
+            ax1 = a2.number_input("X fim",    0.0, 40.0, 2.0, 0.5, key="f_x1")
+            ay1 = a2.number_input("Y fim",    0.0, 40.0, 2.0, 0.5, key="f_y1")
+            if st.form_submit_button("Adicionar zona", use_container_width=True):
+                if ax1 > ax0 and ay1 > ay0:
+                    st.session_state.zonas.append({
+                        "tipo": tipo_n, "nome": nome_n or tipo_n,
+                        "x0": ax0, "y0": ay0, "x1": ax1, "y1": ay1,
+                    })
                     st.rerun()
 
         if st.session_state.zonas:
-            if st.button("🗑 Limpar tudo", use_container_width=True):
+            if st.button("🗑 Limpar tudo", use_container_width=True, key="clear_all"):
                 st.session_state.zonas = []
+                st.session_state.sel_idx = None
                 st.rerun()
 
-    # ── Plotly floor plan
-    with planta:
-        st.markdown("#### 🏗 Planta Baixa — Interativa")
-
+    with mid:
+        st.markdown("#### 🏗 Planta Baixa")
         LW = float(st.session_state.lw)
         LH = float(st.session_state.lh)
+        sel = st.session_state.get("sel_idx")
 
-        fig_d = go.Figure()
-
-        # Contorno do imóvel
-        fig_d.add_shape(type="rect", x0=0, y0=0, x1=LW, y1=LH,
-            fillcolor="#f8fafc", line=dict(color="#1e293b", width=3))
-
-        # Grades de referência (metro a metro)
-        for xi in [i*0.5 for i in range(int(LW/0.5)+1)]:
-            fig_d.add_shape(type="line", x0=xi, y0=0, x1=xi, y1=LH,
-                line=dict(color="#e2e8f0", width=0.5 if xi % 1 else 1, dash="dot"))
-        for yi in [i*0.5 for i in range(int(LH/0.5)+1)]:
-            fig_d.add_shape(type="line", x0=0, y0=yi, x1=LW, y1=yi,
-                line=dict(color="#e2e8f0", width=0.5 if yi % 1 else 1, dash="dot"))
-
-        # Cotas
-        for xi in range(int(LW)+1):
-            fig_d.add_annotation(x=xi, y=-0.35, text=f"{xi}m",
-                showarrow=False, font=dict(size=9, color="#64748b"))
-        for yi in range(int(LH)+1):
-            fig_d.add_annotation(x=-0.35, y=yi, text=f"{yi}m",
-                showarrow=False, font=dict(size=9, color="#64748b"))
-
-        # Zonas
-        for z in st.session_state.zonas:
-            cfg  = TIPOS_ZONA.get(z["tipo"], TIPOS_ZONA["Outro"])
-            area_z = (z["x1"]-z["x0"]) * (z["y1"]-z["y0"])
-            cx   = (z["x0"]+z["x1"])/2
-            cy   = (z["y0"]+z["y1"])/2
-            larg = z["x1"]-z["x0"]
-            prof = z["y1"]-z["y0"]
-
-            fig_d.add_shape(type="rect",
-                x0=z["x0"], y0=z["y0"], x1=z["x1"], y1=z["y1"],
-                fillcolor=cfg["cor"],
-                line=dict(color=cfg["borda"], width=2),
-                opacity=0.90)
-
-            # Rótulo principal
-            fig_d.add_annotation(x=cx, y=cy + 0.12,
-                text=f"<b>{z['nome']}</b>",
-                showarrow=False, font=dict(size=10), align="center",
-                bgcolor="rgba(255,255,255,0.7)", borderpad=2)
-            # Dimensões
-            fig_d.add_annotation(x=cx, y=cy - 0.18,
-                text=f"{larg:.1f}m × {prof:.1f}m = {area_z:.1f} m²",
-                showarrow=False, font=dict(size=8, color="#555"), align="center")
-
-        # Área usada vs total
-        area_usada = sum((z["x1"]-z["x0"])*(z["y1"]-z["y0"])
-                         for z in st.session_state.zonas)
-        pct = area_usada / area_total * 100 if area_total else 0
-
-        fig_d.update_layout(
-            height=560,
-            plot_bgcolor="white", paper_bgcolor="white",
-            showlegend=False,
-            margin=dict(l=40, r=20, t=40, b=40),
-            title=dict(
-                text=f"Área total: {area_total:.0f} m²  |  Zonas mapeadas: {area_usada:.1f} m² ({pct:.0f}%)  |  Livre: {area_total-area_usada:.1f} m²",
-                font=dict(size=12, color="#475569"), x=0.5,
-            ),
-            xaxis=dict(range=[-0.6, LW+0.3], showgrid=False, zeroline=False,
-                       showticklabels=False, fixedrange=True),
-            yaxis=dict(range=[-0.6, LH+0.4], showgrid=False, zeroline=False,
-                       showticklabels=False, scaleanchor="x", fixedrange=True),
-        )
+        fig_d = render_planta(st.session_state.zonas, LW, LH, selected_idx=sel, height=560)
         st.plotly_chart(fig_d, use_container_width=True)
 
-        # Legenda de tipos
-        st.markdown("**Legenda de tipos:**")
+        # Legenda
         leg_cols = st.columns(5)
-        for i, (tipo, cfg) in enumerate(TIPOS_ZONA.items()):
-            leg_cols[i % 5].markdown(
+        for li, (tipo, cfg) in enumerate(TIPOS_ZONA_G.items()):
+            leg_cols[li % 5].markdown(
                 f"<span style='background:{cfg['cor']};border:1px solid {cfg['borda']};"
-                f"padding:2px 8px;border-radius:4px;font-size:11px'>"
-                f"{cfg['icone']} {tipo}</span>",
-                unsafe_allow_html=True)
+                f"padding:2px 7px;border-radius:4px;font-size:10px'>"
+                f"{cfg['icone']} {tipo}</span>", unsafe_allow_html=True)
 
-        # Tabela resumo
+        # Tabela
         if st.session_state.zonas:
-            st.markdown("**Resumo das zonas:**")
+            st.markdown("<br>", unsafe_allow_html=True)
             rows_z = []
             for z in st.session_state.zonas:
-                a = (z["x1"]-z["x0"])*(z["y1"]-z["y0"])
+                a = round((z["x1"]-z["x0"])*(z["y1"]-z["y0"]), 2)
                 rows_z.append({
-                    "Zona": z["nome"],
-                    "Tipo": z["tipo"],
-                    "Posição": f"({z['x0']},{z['y0']}) → ({z['x1']},{z['y1']})",
-                    "Larg × Prof": f"{z['x1']-z['x0']:.1f}m × {z['y1']-z['y0']:.1f}m",
-                    "Área (m²)": f"{a:.1f}",
+                    "Zona": z["nome"], "Tipo": z["tipo"],
+                    "Posição": f"({z['x0']:.1f},{z['y0']:.1f})→({z['x1']:.1f},{z['y1']:.1f})",
+                    "Dim": f"{z['x1']-z['x0']:.1f}m × {z['y1']-z['y0']:.1f}m",
+                    "Área m²": a,
                 })
-            st.dataframe(pd.DataFrame(rows_z), use_container_width=True, hide_index=True)
+            df_z = pd.DataFrame(rows_z)
+            st.dataframe(df_z, use_container_width=True, hide_index=True)
 
 st.divider()
 st.caption("📦 PUDO Vila Carrão — Plano de Negócio v4.0 | Dashboard · Financeiro · DRE · Plano · Desenho")
