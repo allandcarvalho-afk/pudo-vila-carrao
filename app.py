@@ -13,604 +13,664 @@ st.set_page_config(
 
 st.markdown("""
 <style>
-    .sebrae-header {
-        background: linear-gradient(90deg, #003f88, #0066cc);
-        color: white; padding: 14px 20px; border-radius: 8px;
-        font-size: 18px; font-weight: bold; margin-bottom: 12px;
+    [data-testid="stAppViewContainer"] { background: #f4f6f9; }
+    [data-testid="stSidebar"] { background: #1a1f2e; }
+    [data-testid="stSidebar"] * { color: #e0e0e0 !important; }
+    [data-testid="stSidebar"] .stSlider > label { color: #aaa !important; }
+    .block-container { padding-top: 1.5rem; }
+
+    .hero-card {
+        background: white; border-radius: 12px; padding: 20px 24px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.07); text-align: center;
+        border-top: 4px solid #2563eb;
     }
-    .sebrae-section {
-        background: #f7f9fc; border-left: 4px solid #0066cc;
-        padding: 14px 18px; border-radius: 0 8px 8px 0; margin-bottom: 10px;
+    .hero-card.green  { border-top-color: #16a34a; }
+    .hero-card.red    { border-top-color: #dc2626; }
+    .hero-card.purple { border-top-color: #7c3aed; }
+    .hero-card.orange { border-top-color: #ea580c; }
+    .hero-card.teal   { border-top-color: #0d9488; }
+    .hero-val  { font-size: 26px; font-weight: 700; color: #111; margin: 4px 0; }
+    .hero-lbl  { font-size: 11px; color: #666; text-transform: uppercase; letter-spacing: .5px; }
+    .hero-sub  { font-size: 13px; color: #888; margin-top: 2px; }
+
+    .section-title {
+        font-size: 13px; font-weight: 700; color: #2563eb;
+        text-transform: uppercase; letter-spacing: 1px;
+        border-bottom: 2px solid #2563eb; padding-bottom: 6px;
+        margin: 20px 0 12px;
     }
-    .sebrae-section-pesca {
-        background: #f0f7f0; border-left: 4px solid #2e7d32;
-        padding: 14px 18px; border-radius: 0 8px 8px 0; margin-bottom: 10px;
+    .section-title.green  { color: #16a34a; border-color: #16a34a; }
+    .section-title.pink   { color: #be185d; border-color: #be185d; }
+
+    .dre-row  { display:flex; justify-content:space-between; padding: 5px 0; font-size: 14px; border-bottom: 1px solid #f0f0f0; }
+    .dre-bold { font-weight: 700; }
+    .dre-pos  { color: #16a34a; font-weight: 600; }
+    .dre-neg  { color: #dc2626; font-weight: 600; }
+    .dre-box  { background: white; border-radius: 10px; padding: 20px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
+
+    .model-badge {
+        display: inline-block; padding: 6px 18px; border-radius: 20px;
+        font-size: 13px; font-weight: 600; margin-right: 8px;
     }
-    .sebrae-section-beleza {
-        background: #fdf0f7; border-left: 4px solid #ad1457;
-        padding: 14px 18px; border-radius: 0 8px 8px 0; margin-bottom: 10px;
-    }
-    .kpi-box {
-        background: white; border: 1px solid #e0e0e0;
-        border-radius: 10px; padding: 16px; text-align: center;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.06);
-    }
-    .kpi-value { font-size: 24px; font-weight: bold; }
-    .kpi-label { font-size: 12px; color: #666; margin-top: 4px; }
-    .tag {
-        display: inline-block; padding: 3px 10px; border-radius: 12px;
-        font-size: 12px; font-weight: bold; margin: 2px;
-    }
-    .tag-green { background: #e8f5e9; color: #2e7d32; }
-    .tag-pink  { background: #fce4ec; color: #ad1457; }
-    .tag-blue  { background: #e3f2fd; color: #1565c0; }
+    .badge-pesca  { background: #dcfce7; color: #15803d; }
+    .badge-beleza { background: #fce7f3; color: #9d174d; }
+    .badge-pudo   { background: #dbeafe; color: #1d4ed8; }
 </style>
 """, unsafe_allow_html=True)
 
-# ── SIDEBAR — Custos Compartilhados ─────────────────────────────────────────
+# ══════════════════════════════════════════════════════════════
+# SIDEBAR
+# ══════════════════════════════════════════════════════════════
 with st.sidebar:
-    st.title("⚙️ Parâmetros Gerais")
-    st.caption("Custos fixos e PUDO — compartilhados entre os dois segmentos")
+    st.markdown("## ⚙️ Parâmetros")
 
-    st.subheader("🏠 Ponto Fixo")
-    aluguel        = st.number_input("Aluguel (R$)", 0, 30000, 3500, 100)
-    condominio     = st.number_input("Condomínio + IPTU (R$)", 0, 5000, 300, 50)
-    energia        = st.number_input("Energia elétrica (R$)", 0, 5000, 400, 50)
-    internet       = st.number_input("Internet (R$)", 0, 1000, 180, 10)
-    pessoal        = st.number_input("Pessoal — salários brutos (R$)", 0, 20000, 2200, 100)
-    encargos_pct   = st.slider("Encargos trabalhistas (%)", 0, 100, 70)
-    contador       = st.number_input("Contador (R$)", 0, 3000, 450, 50)
-    sistema        = st.number_input("Sistema ERP/PDV (R$)", 0, 2000, 200, 10)
-    embalagens     = st.number_input("Embalagens e suprimentos (R$)", 0, 5000, 400, 50)
-    marketing_fixo = st.number_input("Marketing / ADS (R$)", 0, 10000, 500, 50)
-    seguros        = st.number_input("Seguros (R$)", 0, 2000, 200, 50)
-    taxas_banco    = st.number_input("Taxas bancárias (R$)", 0, 2000, 200, 50)
+    modelo = st.radio("Modelo de Negócio", ["📦🐟  PUDO + Pesca", "📦💄  PUDO + Beleza"], index=0)
+    is_pesca = "Pesca" in modelo
+    accent   = "#16a34a" if is_pesca else "#be185d"
 
-    st.subheader("📦 PUDO + Logística Reversa")
-    pudo_vol       = st.number_input("Pacotes PUDO/mês", 0, 5000, 400, 10)
-    pudo_ticket    = st.number_input("Comissão/pacote (R$)", 0.0, 20.0, 3.5, 0.5)
-    reversa_vol    = st.number_input("Devoluções/mês", 0, 2000, 80, 10)
-    reversa_ticket = st.number_input("Comissão/devolução (R$)", 0.0, 30.0, 8.0, 0.5)
-    full_vol       = st.number_input("Pedidos fulfilment/mês", 0, 2000, 50, 5)
-    full_ticket    = st.number_input("Receita/pedido fulfilment (R$)", 0.0, 50.0, 12.0, 1.0)
-    aliquota       = st.slider("Alíquota Simples Nacional (%)", 0.0, 20.0, 6.0, 0.5)
+    st.markdown("---")
+    st.markdown("#### 🏠 Custos Fixos Mensais")
+    aluguel      = st.number_input("Aluguel (R$)",             0, 30000,  3500, 100)
+    condominio   = st.number_input("Condomínio + IPTU (R$)",   0,  5000,   300,  50)
+    energia      = st.number_input("Energia elétrica (R$)",    0,  5000,   400,  50)
+    internet     = st.number_input("Internet + Telefone (R$)", 0,  1000,   300,  10)
+    salarios     = st.number_input("Salários brutos (R$)",     0, 20000,  2200, 100)
+    enc_pct      = st.slider("Encargos trabalhistas (%)", 0, 100, 70)
+    contador     = st.number_input("Contador (R$)",            0,  3000,   450,  50)
+    sistema_erp  = st.number_input("ERP / PDV (R$)",           0,  2000,   200,  10)
+    embalagens   = st.number_input("Embalagens (R$)",          0,  5000,   400,  50)
+    mkt_mensal   = st.number_input("Marketing / ADS (R$)",     0, 10000,   500,  50)
+    seguros      = st.number_input("Seguros (R$)",             0,  2000,   200,  50)
+    taxas_banco  = st.number_input("Taxas bancárias (R$)",     0,  2000,   200,  50)
 
-# ── Cálculos Base ────────────────────────────────────────────────────────────
-encargos_val   = pessoal * encargos_pct / 100
-opex_fixo_base = (aluguel + condominio + energia + internet + pessoal +
-                  encargos_val + contador + sistema + embalagens +
-                  marketing_fixo + seguros + taxas_banco)
-rec_pudo       = pudo_vol * pudo_ticket
-rec_reversa    = reversa_vol * reversa_ticket
-rec_full       = full_vol * full_ticket
-rec_logistica  = rec_pudo + rec_reversa + rec_full
+    st.markdown("---")
+    st.markdown("#### 📦 PUDO + Logística")
+    pudo_vol     = st.number_input("Pacotes PUDO / mês",         0, 5000,  400, 10)
+    pudo_tick    = st.number_input("Comissão / pacote (R$)",  0.0, 20.0,  3.5,  .5)
+    rev_vol      = st.number_input("Devoluções / mês",           0, 2000,   80, 10)
+    rev_tick     = st.number_input("Comissão / devolução (R$)",0.0, 30.0,  8.0,  .5)
+    full_vol     = st.number_input("Fulfilment / mês",           0, 2000,   50,  5)
+    full_tick    = st.number_input("Receita / pedido (R$)",    0.0, 50.0, 12.0, 1.0)
 
-def projecao_12m(rec_produto_m6, cmv_pct, crescimento, opex_fixo, aliquota):
-    receitas, custos, resultados, saldos = [], [], [], []
+    st.markdown("---")
+    if is_pesca:
+        st.markdown("#### 🐟 Produto — Pesca")
+        prod_itens  = st.number_input("Itens / mês (meta M6)",   0, 2000,  70,  5)
+        prod_ticket = st.number_input("Ticket médio (R$)",     0.0, 1000., 180., 10.)
+        prod_marg   = st.slider("Margem bruta (%)", 0, 100, 50)
+        capex_est   = st.number_input("Estoque inicial (R$)",    0, 100000, 8000, 500)
+    else:
+        st.markdown("#### 💄 Produto — Beleza")
+        prod_itens  = st.number_input("Itens / mês (meta M6)",   0, 3000, 100,   5)
+        prod_ticket = st.number_input("Ticket médio (R$)",     0.0,  500.,  90.,  5.)
+        prod_marg   = st.slider("Margem bruta (%)", 0, 100, 58)
+        capex_est   = st.number_input("Estoque inicial (R$)",    0, 100000, 6000, 500)
+
+    st.markdown("---")
+    st.markdown("#### 💰 Investimento Inicial")
+    capex_obra   = st.number_input("Obra / Reforma (R$)",    0, 200000, 10000, 500)
+    capex_equip  = st.number_input("Equip. + TI + Seg. (R$)",0,  50000,  8000, 500)
+    capex_mkt_i  = st.number_input("Marketing inicial (R$)", 0,  20000,  2000, 500)
+    capex_aber   = st.number_input("Abertura empresa (R$)",  0,  10000,  1500, 100)
+    meses_cg     = st.slider("Meses capital de giro", 1, 6, 3)
+
+    st.markdown("---")
+    st.markdown("#### 📐 Cenários e Impostos")
+    crescimento  = st.slider("Crescimento meses 1→6 (%)", 0, 60, 22)
+    aliquota     = st.slider("Simples Nacional (%)", 0.0, 20.0, 6.0, .5)
+    depreciacao  = st.number_input("Depreciação mensal estimada (R$)", 0, 5000, 500, 50)
+
+# ══════════════════════════════════════════════════════════════
+# CÁLCULOS CENTRAIS
+# ══════════════════════════════════════════════════════════════
+enc_val      = salarios * enc_pct / 100
+opex_fixo    = (aluguel + condominio + energia + internet + salarios +
+                enc_val + contador + sistema_erp + embalagens +
+                mkt_mensal + seguros + taxas_banco)
+
+capex_total  = (capex_obra + capex_equip + capex_est +
+                capex_mkt_i + capex_aber + opex_fixo * meses_cg)
+
+rec_pudo_m   = pudo_vol  * pudo_tick
+rec_rev_m    = rev_vol   * rev_tick
+rec_full_m   = full_vol  * full_tick
+rec_log_base = rec_pudo_m + rec_rev_m + rec_full_m
+
+gmv_prod_m6  = prod_itens * prod_ticket
+rec_prod_m6  = gmv_prod_m6 * prod_marg / 100
+cmv_prod_m6  = gmv_prod_m6 * (1 - prod_marg / 100)
+
+rec_total_m6 = rec_log_base + rec_prod_m6
+imp_m6       = rec_total_m6 * aliquota / 100
+custo_total_m6 = opex_fixo + cmv_prod_m6 + imp_m6
+ebitda_m6    = rec_total_m6 - custo_total_m6
+lucro_m6     = ebitda_m6 - depreciacao
+margem_b_m6  = rec_prod_m6 / rec_total_m6 * 100 if rec_total_m6 else 0
+margem_l_m6  = lucro_m6 / rec_total_m6 * 100 if rec_total_m6 else 0
+payback      = capex_total / max(lucro_m6, 1)
+ponto_eq     = (opex_fixo + depreciacao) / (1 - aliquota / 100)
+
+# ── Projeção 12 meses (3 cenários)
+def proj(fator_cenario):
+    rows = []
     saldo = 0.0
     for m in range(1, 13):
-        fator = max((1 + crescimento / 100) ** (m - 6), 0.05) if m < 6 else 1.0
-        rec_m    = rec_produto_m6 * fator + rec_logistica
-        gmv_m    = (rec_produto_m6 * fator) / (1 - cmv_pct / 100) if cmv_pct < 100 else 0
-        cmv_m    = gmv_m * cmv_pct / 100
-        imp_m    = rec_m * aliquota / 100
-        custo_m  = opex_fixo + cmv_m + imp_m
-        res_m    = rec_m - custo_m
-        saldo   += res_m
-        receitas.append(rec_m)
-        custos.append(custo_m)
-        resultados.append(res_m)
-        saldos.append(saldo)
-    return pd.DataFrame({
-        "Mês": [f"M{i}" for i in range(1, 13)],
-        "Receita": receitas, "Custo": custos,
-        "Resultado": resultados, "Saldo Acumulado": saldos,
-    })
+        fat = max((1 + crescimento / 100) ** (m - 6), 0.08) if m < 6 else 1.0
+        fat *= fator_cenario
+        gmv_m  = gmv_prod_m6 * fat
+        rp_m   = rec_log_base * fator_cenario
+        rl_m   = gmv_m * prod_marg / 100
+        rec_m  = rp_m + rl_m
+        cmv_m  = gmv_m * (1 - prod_marg / 100)
+        imp_m  = rec_m * aliquota / 100
+        custo_m = opex_fixo + cmv_m + imp_m
+        ebitda_m = rec_m - custo_m
+        lucro_m  = ebitda_m - depreciacao
+        saldo   += lucro_m
+        rows.append({
+            "Mês": f"M{m}", "Receita": rec_m, "CMV": cmv_m,
+            "Impostos": imp_m, "Desp Op": opex_fixo,
+            "EBITDA": ebitda_m, "Lucro Líquido": lucro_m,
+            "Saldo Acum": saldo, "PUDO Base": rp_m, "Prod": rl_m,
+        })
+    return pd.DataFrame(rows)
 
-def grafico_fc(df, cor):
-    fig = make_subplots(specs=[[{"secondary_y": True}]])
-    fig.add_trace(go.Bar(x=df["Mês"], y=df["Receita"], name="Receita",
-                         marker_color=cor, opacity=0.75), secondary_y=False)
-    fig.add_trace(go.Bar(x=df["Mês"], y=df["Custo"], name="Custo",
-                         marker_color="#ef5350", opacity=0.75), secondary_y=False)
-    fig.add_trace(go.Scatter(x=df["Mês"], y=df["Saldo Acumulado"],
-                             name="Saldo Acumulado", mode="lines+markers",
-                             line=dict(color="#43a047", width=3)), secondary_y=True)
-    fig.add_hline(y=0, line_dash="dot", line_color="gray", secondary_y=True)
-    fig.update_layout(barmode="group", height=340,
-                      legend=dict(orientation="h", y=-0.25),
-                      margin=dict(l=0, r=0, t=10, b=0))
-    fig.update_yaxes(title_text="R$/mês", secondary_y=False)
-    fig.update_yaxes(title_text="Saldo acumulado (R$)", secondary_y=True)
-    return fig
+df_real = proj(1.0)
+df_pess = proj(0.70)
+df_otim = proj(1.40)
+be_mes   = next((i+1 for i, s in enumerate(df_real["Saldo Acum"]) if s >= 0), None)
+roi_12   = df_real["Lucro Líquido"].sum() / capex_total * 100 if capex_total else 0
 
-def tabela_fc(df):
-    d = df.copy()
-    for c in ["Receita", "Custo", "Resultado", "Saldo Acumulado"]:
-        d[c] = d[c].apply(lambda x: f"R$ {x:,.0f}".replace(",", "."))
+# ══════════════════════════════════════════════════════════════
+# CABEÇALHO
+# ══════════════════════════════════════════════════════════════
+segmento_label = "🐟 Pesca" if is_pesca else "💄 Beleza"
+cor_badge = "badge-pesca" if is_pesca else "badge-beleza"
 
-    def cor(val):
-        try:
-            v = float(val.replace("R$ ", "").replace(".", "").replace(",", "."))
-            return "color: #2e7d32; font-weight:bold" if v >= 0 else "color: #c62828; font-weight:bold"
-        except Exception:
-            return ""
+st.markdown(f"""
+<h2 style="margin-bottom:4px;">📦 PUDO Vila Carrão
+  <span class="model-badge badge-pudo">PUDO</span>
+  <span class="model-badge {cor_badge}">{segmento_label}</span>
+</h2>
+<p style="color:#666;margin-top:0;">Plano de Negócio Integrado — Zona Leste de São Paulo</p>
+""", unsafe_allow_html=True)
 
-    return d.style.map(cor, subset=["Resultado", "Saldo Acumulado"])
-
-# ── ABAS PRINCIPAIS ──────────────────────────────────────────────────────────
-tab_geral, tab_pesca, tab_beleza = st.tabs([
-    "📦  Visão Geral PUDO",
-    "🐟  Segmento Pesca",
-    "💄  Segmento Beleza",
+# ══════════════════════════════════════════════════════════════
+# TABS PRINCIPAIS
+# ══════════════════════════════════════════════════════════════
+t_dash, t_fin, t_cont, t_plano = st.tabs([
+    "🎯  Dashboard Executivo",
+    "💰  Financeiro",
+    "📊  Contabilidade (DRE)",
+    "📋  Plano de Negócio",
 ])
 
-# ════════════════════════════════════════════════════════════════════════════
-# TAB 1 — VISÃO GERAL
-# ════════════════════════════════════════════════════════════════════════════
-with tab_geral:
-    st.markdown('<div class="sebrae-header">📦 PUDO Vila Carrão — Simulador Integrado</div>',
+# ════════════════════════════════════════════════
+# TAB 1 — DASHBOARD EXECUTIVO
+# ════════════════════════════════════════════════
+with t_dash:
+    # KPIs héroe
+    c1,c2,c3,c4,c5,c6 = st.columns(6)
+    def kpi(col, label, val, sub="", cls=""):
+        col.markdown(f"""
+        <div class="hero-card {cls}">
+          <div class="hero-lbl">{label}</div>
+          <div class="hero-val">{val}</div>
+          <div class="hero-sub">{sub}</div>
+        </div>""", unsafe_allow_html=True)
+
+    kpi(c1,"Investimento Total",   f"R$ {capex_total:,.0f}".replace(",","."), "CAPEX")
+    kpi(c2,"OPEX Fixo / Mês",     f"R$ {opex_fixo:,.0f}".replace(",","."),   "custos fixos", "")
+    kpi(c3,"Receita Mês 6",       f"R$ {rec_total_m6:,.0f}".replace(",","."), "cenário realista", "green")
+    kpi(c4,"EBITDA Mês 6",        f"R$ {ebitda_m6:,.0f}".replace(",","."),
+        f"Margem {margem_b_m6:.1f}%", "green" if ebitda_m6>0 else "red")
+    kpi(c5,"Break-even",          f"Mês {be_mes}" if be_mes else ">12m",
+        f"Payback {payback:.1f}m", "purple")
+    kpi(c6,"ROI 12 meses",        f"{roi_12:.1f}%", "retorno sobre CAPEX", "teal")
+
+    st.markdown("<br>", unsafe_allow_html=True)
+    col_g1, col_g2 = st.columns([2,1])
+
+    with col_g1:
+        st.markdown('<div class="section-title">Projeção de Receita vs Custo — 12 Meses (Realista)</div>',
+                    unsafe_allow_html=True)
+        fig = make_subplots(specs=[[{"secondary_y": True}]])
+        fig.add_trace(go.Bar(x=df_real["Mês"], y=df_real["Receita"],
+            name="Receita Total", marker_color="#2563eb", opacity=.8), secondary_y=False)
+        fig.add_trace(go.Bar(x=df_real["Mês"], y=df_real["Desp Op"]+df_real["CMV"]+df_real["Impostos"],
+            name="Custo Total", marker_color="#dc2626", opacity=.7), secondary_y=False)
+        fig.add_trace(go.Scatter(x=df_real["Mês"], y=df_real["Saldo Acum"],
+            name="Saldo Acumulado", line=dict(color="#16a34a", width=3),
+            mode="lines+markers"), secondary_y=True)
+        fig.add_trace(go.Scatter(x=df_real["Mês"], y=df_real["PUDO Base"],
+            name="Piso PUDO", line=dict(color="#7c3aed", width=2, dash="dot"),
+            mode="lines"), secondary_y=False)
+        fig.add_hline(y=0, line_dash="dot", line_color="#999", secondary_y=True)
+        fig.update_layout(barmode="group", height=340,
+            plot_bgcolor="white", paper_bgcolor="white",
+            legend=dict(orientation="h", y=-0.28, x=0),
+            margin=dict(l=0,r=0,t=10,b=0))
+        fig.update_yaxes(gridcolor="#f0f0f0", secondary_y=False)
+        fig.update_yaxes(gridcolor="#f0f0f0", secondary_y=True)
+        st.plotly_chart(fig, use_container_width=True)
+
+    with col_g2:
+        st.markdown('<div class="section-title">Composição da Receita (Mês 6)</div>',
+                    unsafe_allow_html=True)
+        labels = ["PUDO Retirada", "Log. Reversa", "Fulfilment",
+                  segmento_label.replace("🐟 ","").replace("💄 ","")]
+        values = [rec_pudo_m, rec_rev_m, rec_full_m, rec_prod_m6]
+        cores  = ["#2563eb","#7c3aed","#0d9488", "#16a34a" if is_pesca else "#be185d"]
+        fig2 = go.Figure(go.Pie(labels=labels, values=values, hole=.5,
+            marker_colors=cores, textinfo="percent+label", textfont_size=11))
+        fig2.update_layout(height=290, showlegend=False,
+            paper_bgcolor="white",
+            margin=dict(l=10,r=10,t=10,b=10))
+        st.plotly_chart(fig2, use_container_width=True)
+        st.markdown(f"""
+        <div style="background:white;border-radius:10px;padding:14px;margin-top:8px;box-shadow:0 1px 4px rgba(0,0,0,.06)">
+          <div style="font-size:12px;color:#666;margin-bottom:8px;">RECEITA BASE (PUDO)</div>
+          <div style="font-size:20px;font-weight:700;color:#2563eb;">R$ {rec_log_base:,.0f}</div>
+          <div style="font-size:11px;color:#999;margin-top:4px;">Piso garantido independente das vendas de produto</div>
+        </div>""".replace(",","."), unsafe_allow_html=True)
+
+    # Comparativo 3 cenários
+    st.markdown('<div class="section-title">Comparativo de Cenários — Lucro Acumulado 12 Meses</div>',
+                unsafe_allow_html=True)
+    fig3 = go.Figure()
+    for df_c, nome, cor, fill in [
+        (df_pess,"Pessimista (−30%)","#ef4444","rgba(239,68,68,0.08)"),
+        (df_real,"Realista","#2563eb","rgba(37,99,235,0.08)"),
+        (df_otim,"Otimista (+40%)","#16a34a","rgba(22,163,74,0.10)"),
+    ]:
+        fig3.add_trace(go.Scatter(
+            x=df_c["Mês"], y=df_c["Saldo Acum"], name=nome,
+            line=dict(color=cor, width=2.5),
+            fill="tozeroy", fillcolor=fill, mode="lines"))
+    fig3.add_hline(y=0, line_dash="dash", line_color="#666",
+                   annotation_text="Break-even", annotation_position="right")
+    fig3.update_layout(height=260, plot_bgcolor="white", paper_bgcolor="white",
+        legend=dict(orientation="h", y=-0.30),
+        margin=dict(l=0,r=0,t=10,b=0))
+    fig3.update_yaxes(gridcolor="#f0f0f0")
+    st.plotly_chart(fig3, use_container_width=True)
+
+# ════════════════════════════════════════════════
+# TAB 2 — FINANCEIRO
+# ════════════════════════════════════════════════
+with t_fin:
+    st.markdown('<div class="section-title">Fluxo de Caixa Mensal — Cenário Realista</div>',
                 unsafe_allow_html=True)
 
-    with st.expander("💰 Investimento Inicial (CAPEX) — configure aqui", expanded=False):
-        c1, c2, c3 = st.columns(3)
-        capex_reforma   = c1.number_input("Reforma (R$)", 0, 200000, 10000, 500, key="cx_r")
-        capex_moveis    = c1.number_input("Móveis/Prateleiras (R$)", 0, 50000, 4000, 500, key="cx_m")
-        capex_ti        = c2.number_input("Equipamentos TI (R$)", 0, 30000, 5000, 500, key="cx_ti")
-        capex_segur     = c2.number_input("Câmeras + Alarme (R$)", 0, 20000, 2500, 500, key="cx_s")
-        capex_arc       = c2.number_input("Ar-condicionado (R$)", 0, 15000, 3500, 500, key="cx_ac")
-        capex_ep        = c3.number_input("Estoque Pesca (R$)", 0, 100000, 8000, 500, key="cx_ep")
-        capex_eb        = c3.number_input("Estoque Beleza (R$)", 0, 100000, 5000, 500, key="cx_eb")
-        capex_ab        = c3.number_input("Abertura empresa (R$)", 0, 10000, 1500, 100, key="cx_ab")
-        capex_mk        = c3.number_input("Marketing inicial (R$)", 0, 20000, 2000, 500, key="cx_mk")
-        meses_cg        = c1.slider("Meses capital de giro", 1, 6, 3, key="cx_cg")
+    # Waterfall mensal M6
+    cats = ["Receita\nPUDO", f"Receita\n{segmento_label}", "Impostos", "CMV",
+            "Desp.\nOperac.", "Depreciação", "EBITDA", "Lucro\nLíquido"]
+    vals = [rec_log_base, rec_prod_m6, -imp_m6, -cmv_prod_m6,
+            -opex_fixo, -depreciacao, ebitda_m6, lucro_m6]
+    cores_wf = ["#2563eb" if v > 0 else "#dc2626" for v in vals]
+    cores_wf[-2] = "#7c3aed"
+    cores_wf[-1] = "#16a34a" if lucro_m6 >= 0 else "#dc2626"
 
-    capex_total = (capex_reforma + capex_moveis + capex_ti + capex_segur + capex_arc +
-                   capex_ep + capex_eb + capex_ab + capex_mk + opex_fixo_base * meses_cg)
+    fig_wf = go.Figure(go.Waterfall(
+        name="Mês 6", orientation="v",
+        measure=["relative","relative","relative","relative",
+                 "relative","relative","total","total"],
+        x=cats, y=vals,
+        connector=dict(line=dict(color="#ccc", width=1)),
+        increasing=dict(marker_color="#2563eb"),
+        decreasing=dict(marker_color="#dc2626"),
+        totals=dict(marker_color=["#7c3aed","#16a34a" if lucro_m6>=0 else "#dc2626"]),
+        text=[f"R$ {abs(v):,.0f}".replace(",",".") for v in vals],
+        textposition="outside",
+    ))
+    fig_wf.update_layout(height=340, plot_bgcolor="white", paper_bgcolor="white",
+        showlegend=False, margin=dict(l=0,r=0,t=20,b=0))
+    fig_wf.update_yaxes(gridcolor="#f0f0f0")
+    st.plotly_chart(fig_wf, use_container_width=True)
 
-    st.subheader("📊 KPIs Consolidados")
-    k1, k2, k3, k4, k5 = st.columns(5)
-    k1.metric("Investimento Total", f"R$ {capex_total:,.0f}".replace(",", "."))
-    k2.metric("OPEX Fixo/mês", f"R$ {opex_fixo_base:,.0f}".replace(",", "."))
-    k3.metric("Receita PUDO/mês", f"R$ {rec_logistica:,.0f}".replace(",", "."))
-    ponto_eq = opex_fixo_base / (1 - aliquota / 100) if aliquota < 100 else 0
-    k4.metric("Ponto de Equilíbrio/mês", f"R$ {ponto_eq:,.0f}".replace(",", "."))
-    gap = rec_logistica - ponto_eq
-    k5.metric("Gap p/ break-even (só PUDO)", f"R$ {gap:,.0f}".replace(",", "."),
-              delta=f"R$ {gap:,.0f}".replace(",", "."))
-
-    st.divider()
-    st.subheader("🔗 Links de Credenciamento PUDO")
-    c1, c2, c3, c4 = st.columns(4)
-    with c1:
-        st.markdown("**Transportadoras**")
-        st.markdown("[Correios Agente](https://www.correios.com.br/solucoes-empresariais/agentes-correios)")
-        st.markdown("[Jadlog Pickup](https://www.jadlog.com.br/jadlog/pickup)")
-        st.markdown("[Pegaki](https://www.pegaki.com.br/seja-um-ponto)")
-    with c2:
-        st.markdown("**Marketplaces**")
-        st.markdown("[Shopee Drops](https://shopee.com.br/m/shopee-drops)")
-        st.markdown("[Mercado Envios](https://www.mercadolivre.com.br/agencias)")
-        st.markdown("[Total Express](https://www.totalexpress.com.br/seja-parceiro)")
-    with c3:
-        st.markdown("**Regulação SP**")
-        st.markdown("[Portal Empreendedor](https://www.gov.br/empresas-e-negocios/pt-br/empreendedor)")
-        st.markdown("[JUCESP](https://www.jucesp.sp.gov.br)")
-        st.markdown("[Alvará SP](https://www.prefeitura.sp.gov.br/cidade/secretarias/licenciamentos)")
-    with c4:
-        st.markdown("**Dados de Mercado**")
-        st.markdown("[ABComm](https://www.abcomm.org.br)")
-        st.markdown("[IBGE SP](https://cidades.ibge.gov.br/brasil/sp/sao-paulo/panorama)")
-        st.markdown("[GeoSampa](https://geosampa.prefeitura.sp.gov.br)")
-
-# ════════════════════════════════════════════════════════════════════════════
-# TAB 2 — PESCA
-# ════════════════════════════════════════════════════════════════════════════
-with tab_pesca:
-    st.markdown('<div class="sebrae-header" style="background:linear-gradient(90deg,#1b5e20,#2e7d32)">🐟 Segmento Pesca — Plano de Negócio + Projeção Financeira</div>',
+    st.markdown('<div class="section-title">Tabela de Fluxo de Caixa — 12 Meses</div>',
                 unsafe_allow_html=True)
 
-    plano_p, financ_p = st.tabs(["📋 Plano de Negócio (SEBRAE)", "💰 Projeção Financeira"])
+    df_fc = df_real[["Mês","PUDO Base","Prod","Receita","CMV","Impostos",
+                     "Desp Op","EBITDA","Lucro Líquido","Saldo Acum"]].copy()
+    df_fc.columns = ["Mês","Rec PUDO","Rec Produto","Rec Total","CMV",
+                     "Impostos","Desp Fixas","EBITDA","Lucro Líq","Saldo Acum"]
 
-    # ── Plano SEBRAE Pesca ──────────────────────────────────────────────────
-    with plano_p:
+    def fmt_fc(df):
+        d = df.copy()
+        for c in d.columns[1:]:
+            d[c] = d[c].apply(lambda x: f"R$ {x:,.0f}".replace(",","."))
+        def cor(val):
+            try:
+                v = float(val.replace("R$ ","").replace(".","").replace(",","."))
+                if v >= 0: return "color:#16a34a;font-weight:600"
+                return "color:#dc2626;font-weight:600"
+            except: return ""
+        return d.style.map(cor, subset=["EBITDA","Lucro Líq","Saldo Acum"])
 
-        # 1. SUMÁRIO EXECUTIVO
-        with st.expander("1. SUMÁRIO EXECUTIVO", expanded=True):
-            st.markdown('<div class="sebrae-section-pesca">', unsafe_allow_html=True)
-            c1, c2 = st.columns(2)
-            c1.text_input("Nome do Negócio / Marca", "PUDO Pesca Vila Carrão", key="p_nome")
-            c1.text_input("Localização", "Vila Carrão — Zona Leste SP", key="p_local")
-            c2.text_input("Sócio(s)", "", key="p_socio")
-            c2.text_input("CNPJ / Regime", "MEI / Simples Nacional", key="p_cnpj")
-            st.text_area("Proposta de Valor (1 parágrafo)",
-                "Somos o único ponto especializado em produtos de pesca na Vila Carrão, "
-                "combinando atendimento consultivo presencial com conveniência de retirada "
-                "de pedidos online (PUDO) e devolução de marketplace — tudo em um único endereço.",
-                height=80, key="p_valor")
-            st.markdown('</div>', unsafe_allow_html=True)
+    st.dataframe(fmt_fc(df_fc), use_container_width=True, hide_index=True)
 
-        # 2. DESCRIÇÃO DO NEGÓCIO
-        with st.expander("2. DESCRIÇÃO DO NEGÓCIO"):
-            st.markdown('<div class="sebrae-section-pesca">', unsafe_allow_html=True)
-            col1, col2 = st.columns(2)
-            col1.text_area("Missão",
-                "Oferecer ao pescador da Zona Leste acesso a produtos de qualidade "
-                "com atendimento especializado e preço justo.", height=80, key="p_missao")
-            col1.text_area("Visão",
-                "Ser referência em pesca esportiva na Zona Leste de São Paulo "
-                "até 2027, com presença física e online consolidadas.", height=80, key="p_visao")
-            col2.text_area("Valores",
-                "• Paixão pelo esporte\n• Honestidade no atendimento\n"
-                "• Qualidade dos produtos\n• Comprometimento com o cliente", height=80, key="p_valores")
-            col2.text_area("Diferencial Competitivo",
-                "• Consultoria gratuita para escolha de equipamentos\n"
-                "• Ponto PUDO integrado (retirada de pedidos de qualquer loja)\n"
-                "• Kits para iniciantes com orientação\n"
-                "• Localização com fácil acesso e estacionamento", height=80, key="p_dif")
-            st.markdown('</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-title">Análise de Break-Even</div>', unsafe_allow_html=True)
+    col_be1, col_be2, col_be3 = st.columns(3)
 
-        # 3. PRODUTOS E SERVIÇOS
-        with st.expander("3. PRODUTOS E SERVIÇOS"):
-            st.markdown('<div class="sebrae-section-pesca">', unsafe_allow_html=True)
-            st.markdown("""
-| Categoria | Exemplos de Produtos | Ticket Médio | Margem Estimada |
-|---|---|---|---|
-| Varas e molinetes | Varas 1,20m–2,40m, molinetes spinning/baitcasting | R$ 150–500 | 45–55% |
-| Linhas e anzóis | Linhas monofilamento, fluorocarbono, multifilamento | R$ 20–80 | 60–70% |
-| Iscas artificiais | Iscas soft, hard bait, jigs, flies | R$ 15–120 | 50–65% |
-| Acessórios | Caixas de pesca, suportes, alicates, roupas UV | R$ 30–200 | 50–60% |
-| Kit iniciante | Combo vara + molinete + linha + isca + caixa | R$ 120–280 | 40–50% |
-| Serviços PUDO | Retirada e devolução de encomendas | R$ 3–15/pacote | 100% |
-""")
-            st.text_area("Produtos que pretende adicionar (preencha)",
-                         "", height=60, key="p_prod_add")
-            st.markdown('</div>', unsafe_allow_html=True)
+    with col_be1:
+        st.markdown(f"""
+        <div style="background:white;border-radius:12px;padding:20px;box-shadow:0 1px 4px rgba(0,0,0,.06)">
+          <div style="font-size:11px;color:#666;text-transform:uppercase;letter-spacing:.5px">Ponto de Equilíbrio Mensal</div>
+          <div style="font-size:28px;font-weight:700;color:#2563eb;margin:8px 0">R$ {ponto_eq:,.0f}</div>
+          <div style="font-size:12px;color:#999">Receita mínima para cobrir todos os custos</div>
+        </div>""".replace(",","."), unsafe_allow_html=True)
+    with col_be2:
+        st.markdown(f"""
+        <div style="background:white;border-radius:12px;padding:20px;box-shadow:0 1px 4px rgba(0,0,0,.06)">
+          <div style="font-size:11px;color:#666;text-transform:uppercase;letter-spacing:.5px">Mês do Break-Even</div>
+          <div style="font-size:28px;font-weight:700;color:#7c3aed;margin:8px 0">{"Mês "+str(be_mes) if be_mes else "Após M12"}</div>
+          <div style="font-size:12px;color:#999">Quando o saldo acumulado fica positivo</div>
+        </div>""", unsafe_allow_html=True)
+    with col_be3:
+        st.markdown(f"""
+        <div style="background:white;border-radius:12px;padding:20px;box-shadow:0 1px 4px rgba(0,0,0,.06)">
+          <div style="font-size:11px;color:#666;text-transform:uppercase;letter-spacing:.5px">Payback do Investimento</div>
+          <div style="font-size:28px;font-weight:700;color:#0d9488;margin:8px 0">{payback:.1f} meses</div>
+          <div style="font-size:12px;color:#999">Tempo de retorno do CAPEX total</div>
+        </div>""", unsafe_allow_html=True)
 
-        # 4. ANÁLISE DE MERCADO
-        with st.expander("4. ANÁLISE DE MERCADO"):
-            st.markdown('<div class="sebrae-section-pesca">', unsafe_allow_html=True)
+    # Gráfico break-even
+    meses_range = list(range(0, int(max(payback*1.4, 15))))
+    acum_real = [-capex_total + df_real["Lucro Líquido"].iloc[:m].sum()
+                 if m <= 12 else -capex_total + df_real["Lucro Líquido"].sum()
+                 for m in meses_range]
 
-            st.markdown("##### 4.1 Clientes-Alvo")
-            st.markdown("""
-| Perfil | Detalhe |
-|---|---|
-| **Gênero predominante** | Masculino (85%) |
-| **Faixa etária** | 25–55 anos |
-| **Classe social** | B2 e C1 (renda R$ 3.000–8.000/mês) |
-| **Comportamento** | Compra recorrente; fiel à marca quando bem atendido |
-| **Canal preferido** | Loja física para consultoria + online para reposição |
-| **Frequência** | Mensal a trimestral |
-| **Motivação** | Pesca esportiva / lazer nos finais de semana |
-""")
-            st.text_area("Observações sobre os seus clientes da região",
-                         "", height=60, key="p_clientes")
+    fig_be = go.Figure()
+    fig_be.add_trace(go.Scatter(x=meses_range, y=acum_real,
+        fill="tozeroy", fillcolor="rgba(37,99,235,0.08)",
+        line=dict(color="#2563eb", width=2.5), name="Retorno acumulado"))
+    fig_be.add_hline(y=0, line_dash="dash", line_color="#dc2626",
+                     annotation_text="Recuperação do investimento")
+    fig_be.update_layout(height=220, plot_bgcolor="white", paper_bgcolor="white",
+        showlegend=False, margin=dict(l=0,r=0,t=10,b=0),
+        xaxis_title="Meses", yaxis_title="R$ acumulado")
+    fig_be.update_yaxes(gridcolor="#f0f0f0")
+    st.plotly_chart(fig_be, use_container_width=True)
 
-            st.markdown("##### 4.2 Concorrentes")
-            st.markdown("""
-| Concorrente | Tipo | Distância | Ponto Fraco |
-|---|---|---|---|
-| Lojas de pesca Zona Leste (genéricas) | Física | 2–5 km | Pouca variedade / sem consultoria |
-| Mercado Livre / Shopee | Online | — | Sem atendimento pós-venda presencial |
-| Decathlon | Física | > 8 km | Foco esportes gerais, não especialista |
-| Ponto de Pesca / Pesca e Cia | Online | — | Frete alto para zona leste |
-""")
-            st.text_area("Concorrentes identificados na sua região (preencha)",
-                         "", height=60, key="p_concorrentes")
+# ════════════════════════════════════════════════
+# TAB 3 — CONTABILIDADE / DRE
+# ════════════════════════════════════════════════
+with t_cont:
+    col_dre, col_comp = st.columns([1, 1])
 
-            st.markdown("##### 4.3 Fornecedores Recomendados")
-            st.markdown("""
-| Fornecedor | Produtos | Contato |
-|---|---|---|
-| **Marine Sports** | Varas, molinetes, linhas | [marinesports.com.br](https://www.marinesports.com.br) |
-| **Albatroz Fishing** | Iscas, varas, acessórios | [albatrozfishing.com.br](https://www.albatrozfishing.com.br) |
-| **Maruri** | Varas, molinetes | [maruri.com.br](https://www.maruri.com.br) |
-| **Sufix / Rapala** | Linhas premium, iscas | Distribuidores SP |
-| **Atacado pesca Brás** | Variedade geral | Pesquisar: Feira do Brás SP |
-""")
-            st.markdown('</div>', unsafe_allow_html=True)
+    with col_dre:
+        st.markdown('<div class="section-title">DRE — Demonstrativo de Resultado (Mês 6)</div>',
+                    unsafe_allow_html=True)
 
-        # 5. PLANO DE MARKETING — 4Ps
-        with st.expander("5. PLANO DE MARKETING — 4Ps"):
-            st.markdown('<div class="sebrae-section-pesca">', unsafe_allow_html=True)
-            p1, p2 = st.columns(2)
-            p1.markdown("**🎣 PRODUTO**")
-            p1.text_area("Linha de produtos e diferenciais",
-                "• Variedade focada em pesca em represa e rio (perfil SP interior)\n"
-                "• Kit iniciante exclusivo com guia de uso\n"
-                "• Produtos de marca + opção econômica\n"
-                "• Consultoria gratuita na compra", height=120, key="p_produto")
-            p1.markdown("**💰 PREÇO**")
-            p1.text_area("Estratégia de preço",
-                "• Preço competitivo com marketplace (até 10% abaixo)\n"
-                "• Desconto para compra de kits\n"
-                "• Parcelamento em até 6x sem juros (cartão)\n"
-                "• Fidelidade: 5ª compra com 10% de desconto", height=120, key="p_preco")
-            p2.markdown("**📍 PRAÇA (Distribuição)**")
-            p2.text_area("Canais de venda",
-                "• Loja física — Vila Carrão\n"
-                "• Mercado Livre (anúncios prata/ouro)\n"
-                "• Shopee (frete subsidiado)\n"
-                "• WhatsApp Business (atendimento e pedidos)\n"
-                "• Instagram Shopping", height=120, key="p_praca")
-            p2.markdown("**📣 PROMOÇÃO**")
-            p2.text_area("Ações de marketing",
-                "• Instagram: dicas de pesca + produtos novos (3x/semana)\n"
-                "• Grupos WhatsApp pescadores zona leste\n"
-                "• YouTube: reviews de produtos (mensal)\n"
-                "• Parcerias com clubes de pesca da região\n"
-                "• Google Meu Negócio otimizado", height=120, key="p_promo")
-            st.markdown('</div>', unsafe_allow_html=True)
+        def linha(lbl, val, cls="", indent=0):
+            pad = f"padding-left:{indent*16}px"
+            sinal = "+" if val >= 0 else "−"
+            val_fmt = f"R$ {abs(val):,.0f}".replace(",",".")
+            if cls == "total":
+                return f"""<div class="dre-row dre-bold" style="{pad};background:#f8faff;border-radius:4px;padding:7px 4px">
+                    <span>{lbl}</span><span class="dre-pos" style="color:#111">{val_fmt}</span></div>"""
+            elif cls == "pos":
+                return f"""<div class="dre-row" style="{pad}">
+                    <span style="color:#555">{lbl}</span><span class="dre-pos">{val_fmt}</span></div>"""
+            elif cls == "neg":
+                return f"""<div class="dre-row" style="{pad}">
+                    <span style="color:#555">{lbl}</span><span class="dre-neg">({val_fmt})</span></div>"""
+            elif cls == "result":
+                cor = "#16a34a" if val >= 0 else "#dc2626"
+                return f"""<div class="dre-row dre-bold" style="{pad};margin-top:6px;background:#f0fdf4;border-radius:4px;padding:8px 4px">
+                    <span>{lbl}</span>
+                    <span style="font-size:16px;color:{cor}">{val_fmt}</span></div>"""
+            return f"""<div class="dre-row" style="{pad}">
+                <span style="color:#888;font-size:12px">{lbl}</span><span style="color:#888">{val_fmt}</span></div>"""
 
-        # 6. PLANO OPERACIONAL
-        with st.expander("6. PLANO OPERACIONAL"):
-            st.markdown('<div class="sebrae-section-pesca">', unsafe_allow_html=True)
-            st.markdown("""
-**Layout sugerido (60 m²):**
-- Balcão de atendimento + caixa: 8 m²
-- Exposição de produtos (prateleiras): 20 m²
-- Área de estoque PUDO (encomendas): 15 m²
-- Estoque de produtos: 12 m²
-- Circulação: 5 m²
+        lucro_bruto = rec_total_m6 - cmv_prod_m6
+        marg_bruta  = lucro_bruto / rec_total_m6 * 100 if rec_total_m6 else 0
+        marg_ebitda = ebitda_m6   / rec_total_m6 * 100 if rec_total_m6 else 0
+        marg_liq    = lucro_m6    / rec_total_m6 * 100 if rec_total_m6 else 0
 
-**Horário de funcionamento:**
-- Seg–Sex: 08h00 às 19h00 | Sáb: 08h00 às 14h00
+        dre_html = '<div class="dre-box">'
+        dre_html += linha("(+) RECEITA OPERACIONAL BRUTA", rec_total_m6, "total")
+        dre_html += linha("Comissões PUDO", rec_pudo_m, "pos", 1)
+        dre_html += linha("Logística Reversa", rec_rev_m, "pos", 1)
+        dre_html += linha("Fulfilment", rec_full_m, "pos", 1)
+        dre_html += linha(f"Venda {segmento_label} (margem bruta)", rec_prod_m6, "pos", 1)
+        dre_html += linha("(−) Impostos — Simples Nacional", imp_m6, "neg")
+        dre_html += linha("(=) RECEITA LÍQUIDA", rec_total_m6 - imp_m6, "total")
+        dre_html += linha("(−) Custo das Mercadorias Vendidas (CMV)", cmv_prod_m6, "neg")
+        dre_html += linha(f"(=) LUCRO BRUTO  —  Margem {marg_bruta:.1f}%", lucro_bruto, "total")
+        dre_html += linha("(−) DESPESAS OPERACIONAIS", opex_fixo, "neg")
+        dre_html += linha("Pessoal + Encargos", salarios + enc_val, "neg", 1)
+        dre_html += linha("Aluguel + Condomínio", aluguel + condominio, "neg", 1)
+        dre_html += linha("Energia + Internet + Tel", energia + internet, "neg", 1)
+        dre_html += linha("Marketing / ADS", mkt_mensal, "neg", 1)
+        dre_html += linha("Contador + ERP", contador + sistema_erp, "neg", 1)
+        dre_html += linha("Embalagens + Seguros + Banco", embalagens + seguros + taxas_banco, "neg", 1)
+        dre_html += linha(f"(=) EBITDA  —  Margem {marg_ebitda:.1f}%", ebitda_m6, "result")
+        dre_html += linha("(−) Depreciação estimada", depreciacao, "neg")
+        dre_html += linha(f"(=) LUCRO LÍQUIDO  —  Margem {marg_liq:.1f}%", lucro_m6, "result")
+        dre_html += '</div>'
 
-**Processos críticos:**
-1. Recebimento de mercadoria → conferência → estoque → precificação
-2. Venda → separação → embalagem → entrega (balcão/motoboy/PUDO)
-3. Recebimento de encomendas PUDO → registro → notificação → entrega
-""")
-            st.text_area("Anotações operacionais (preencha)", "", height=60, key="p_op")
-            st.markdown("**Links operacionais:**")
-            st.markdown("[Bling ERP](https://www.bling.com.br) · [Melhor Envio](https://www.melhorenvio.com.br) · [ANVISA](https://www.gov.br/anvisa) · [MAPA Pesca](https://www.gov.br/agricultura/pt-br/assuntos/aquicultura-e-pesca)")
-            st.markdown('</div>', unsafe_allow_html=True)
+        st.markdown(dre_html, unsafe_allow_html=True)
 
-    # ── Projeção Financeira Pesca ────────────────────────────────────────────
-    with financ_p:
-        st.markdown('<div class="sebrae-section-pesca"><b>Configure os parâmetros do segmento Pesca</b></div>', unsafe_allow_html=True)
+    with col_comp:
+        st.markdown('<div class="section-title">Decomposição de Custos</div>',
+                    unsafe_allow_html=True)
 
-        c1, c2, c3 = st.columns(3)
-        p_itens   = c1.number_input("Itens pesca vendidos/mês (meta M6)", 0, 2000, 70, 5, key="pf_itens")
-        p_ticket  = c1.number_input("Ticket médio pesca (R$)", 0.0, 1000.0, 180.0, 10.0, key="pf_tick")
-        p_margem  = c1.slider("Margem bruta (%)", 0, 100, 50, key="pf_marg")
-        p_cresc   = c2.slider("Crescimento mensal meses 1→6 (%)", 0, 60, 25, key="pf_cresc")
-        p_capex_e = c2.number_input("Estoque inicial Pesca (R$)", 0, 100000, 8000, 500, key="pf_capex")
-        p_capex_o = c2.number_input("Outros CAPEX Pesca (R$)", 0, 50000, 5000, 500, key="pf_capo")
-        p_meses_cg = c3.slider("Meses de capital de giro", 1, 6, 3, key="pf_cg")
-
-        rec_pesca_m6 = p_itens * p_ticket * (p_margem / 100)
-        capex_pesca  = p_capex_e + p_capex_o + opex_fixo_base * p_meses_cg
-        df_p = projecao_12m(rec_pesca_m6, 100 - p_margem, p_cresc, opex_fixo_base, aliquota)
-        be_p = next((i + 1 for i, s in enumerate(df_p["Saldo Acumulado"]) if s >= 0), None)
-
-        k1, k2, k3, k4 = st.columns(4)
-        k1.metric("CAPEX Pesca", f"R$ {capex_pesca:,.0f}".replace(",", "."))
-        k2.metric("Receita (margem) Mês 6", f"R$ {rec_pesca_m6 + rec_logistica:,.0f}".replace(",", "."))
-        res6 = df_p["Resultado"].iloc[5]
-        k3.metric("Resultado Mês 6", f"R$ {res6:,.0f}".replace(",", "."))
-        k4.metric("Break-even (mês)", f"Mês {be_p}" if be_p else "Após 12m")
-
-        st.plotly_chart(grafico_fc(df_p, "#2e7d32"), use_container_width=True)
-        st.dataframe(tabela_fc(df_p), use_container_width=True, hide_index=True)
-
-        st.divider()
-        st.subheader("📦 Mix de Estoque Sugerido — Pesca")
-        dados_mix_p = {
-            "Categoria": ["Varas e molinetes", "Linhas e anzóis", "Iscas artificiais",
-                          "Acessórios", "Kit iniciante"],
-            "% do Estoque": [30, 15, 25, 15, 15],
-            "Valor Sugerido (R$)": [
-                round(p_capex_e * 0.30), round(p_capex_e * 0.15),
-                round(p_capex_e * 0.25), round(p_capex_e * 0.15),
-                round(p_capex_e * 0.15)
-            ]
+        custos_items = {
+            "Pessoal + Encargos": salarios + enc_val,
+            "Aluguel + Cond.": aluguel + condominio,
+            "CMV Produtos": cmv_prod_m6,
+            "Impostos": imp_m6,
+            "Marketing": mkt_mensal,
+            "Energia + Internet": energia + internet,
+            "Contador + ERP": contador + sistema_erp,
+            "Embalagens + Seg + Banco": embalagens + seguros + taxas_banco,
+            "Depreciação": depreciacao,
         }
-        st.dataframe(pd.DataFrame(dados_mix_p), use_container_width=True, hide_index=True)
-        st.markdown("**Fornecedores:** [Marine Sports](https://www.marinesports.com.br) · [Albatroz](https://www.albatrozfishing.com.br) · [Maruri](https://www.maruri.com.br)")
-        st.markdown("**Venda online:** [Mercado Livre Seller](https://www.mercadolivre.com.br/vendedor) · [Shopee Seller](https://seller.shopee.com.br) · [MPA Regulação Pesca](https://www.gov.br/agricultura/pt-br/assuntos/aquicultura-e-pesca)")
+        custos_items = {k: v for k, v in custos_items.items() if v > 0}
 
-# ════════════════════════════════════════════════════════════════════════════
-# TAB 3 — BELEZA
-# ════════════════════════════════════════════════════════════════════════════
-with tab_beleza:
-    st.markdown('<div class="sebrae-header" style="background:linear-gradient(90deg,#880e4f,#ad1457)">💄 Segmento Beleza — Plano de Negócio + Projeção Financeira</div>',
+        fig_c = px.bar(
+            x=list(custos_items.values()),
+            y=list(custos_items.keys()),
+            orientation="h",
+            color=list(custos_items.values()),
+            color_continuous_scale=["#dbeafe","#2563eb"],
+            text=[f"R$ {v:,.0f}".replace(",",".") for v in custos_items.values()],
+        )
+        fig_c.update_traces(textposition="outside")
+        fig_c.update_layout(height=340, showlegend=False, coloraxis_showscale=False,
+            plot_bgcolor="white", paper_bgcolor="white",
+            margin=dict(l=0,r=80,t=10,b=0))
+        fig_c.update_xaxes(visible=False)
+        fig_c.update_yaxes(tickfont=dict(size=11))
+        st.plotly_chart(fig_c, use_container_width=True)
+
+        # DRE Anual
+        st.markdown('<div class="section-title">DRE Anual Projetado</div>',
+                    unsafe_allow_html=True)
+        dre_anual = {
+            "Receita Bruta":    df_real["Receita"].sum(),
+            "Impostos":        -df_real["Impostos"].sum(),
+            "CMV":             -df_real["CMV"].sum(),
+            "Desp. Operac.":   -df_real["Desp Op"].sum(),
+            "EBITDA":           df_real["EBITDA"].sum(),
+            "Depreciação":     -depreciacao * 12,
+            "Lucro Líquido":    df_real["Lucro Líquido"].sum(),
+        }
+        rows_da = []
+        for k, v in dre_anual.items():
+            rows_da.append({
+                "Item": k,
+                "Valor (R$)": f"R$ {v:,.0f}".replace(",","."),
+                "% Receita": f"{v/dre_anual['Receita Bruta']*100:.1f}%" if dre_anual["Receita Bruta"] else "—",
+            })
+        df_da = pd.DataFrame(rows_da)
+
+        def cor_dre(val):
+            try:
+                v = float(val.replace("R$ ","").replace(".","").replace(",","."))
+                if v > 0: return "color:#16a34a;font-weight:600"
+                if v < 0: return "color:#dc2626"
+            except: pass
+            return ""
+
+        st.dataframe(df_da.style.map(cor_dre, subset=["Valor (R$)"]),
+                     use_container_width=True, hide_index=True)
+
+# ════════════════════════════════════════════════
+# TAB 4 — PLANO DE NEGÓCIO
+# ════════════════════════════════════════════════
+with t_plano:
+    segmento_nome = "Pesca Esportiva" if is_pesca else "Cosméticos e Beleza"
+    cor_sec = "green" if is_pesca else "pink"
+    emoji_s = "🐟" if is_pesca else "💄"
+
+    st.markdown(f'<div class="section-title {cor_sec}">Modelo de Negócio Integrado — PUDO + {segmento_nome}</div>',
                 unsafe_allow_html=True)
 
-    plano_b, financ_b = st.tabs(["📋 Plano de Negócio (SEBRAE)", "💰 Projeção Financeira"])
+    # Modelo canvas simplificado
+    c1, c2, c3 = st.columns(3)
+    canvas_items = {
+        "Proposta de Valor": (
+            "• Ponto de conveniência multifuncional\n"
+            "• Retirada de qualquer e-commerce (PUDO)\n"
+            f"• Venda especializada em {segmento_nome.lower()}\n"
+            "• Atendimento consultivo presencial"
+        ),
+        "Segmentos de Cliente": (
+            ("• Pescadores zona leste (masc. 25–55 anos)\n"
+             "• Compradores online sem endereço fixo\n"
+             "• Vendedores de marketplace (fulfilment)\n"
+             "• Clubes e grupos de pesca da região") if is_pesca else
+            ("• Mulheres 18–50 anos, classes C/B\n"
+             "• Compradores online sem endereço fixo\n"
+             "• Vendedores de marketplace (fulfilment)\n"
+             "• Profissionais de beleza autônomos")
+        ),
+        "Fontes de Receita": (
+            "• Comissão por pacote PUDO (R$ 3–5)\n"
+            "• Comissão logística reversa (R$ 8–15)\n"
+            "• Margem sobre venda de produto (45–60%)\n"
+            "• Fulfilment para vendedores locais (R$ 12)"
+        ),
+    }
+    for col, (titulo, txt) in zip([c1,c2,c3], canvas_items.items()):
+        col.markdown(f"""
+        <div style="background:white;border-radius:12px;padding:18px;
+             box-shadow:0 1px 4px rgba(0,0,0,.06);height:180px;overflow:auto">
+          <div style="font-size:11px;font-weight:700;color:{accent};
+               text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">{titulo}</div>
+          <div style="font-size:13px;color:#444;white-space:pre-line">{txt}</div>
+        </div>""", unsafe_allow_html=True)
 
-    # ── Plano SEBRAE Beleza ─────────────────────────────────────────────────
-    with plano_b:
+    st.markdown("<br>", unsafe_allow_html=True)
 
-        with st.expander("1. SUMÁRIO EXECUTIVO", expanded=True):
-            st.markdown('<div class="sebrae-section-beleza">', unsafe_allow_html=True)
-            c1, c2 = st.columns(2)
-            c1.text_input("Nome do Negócio / Marca", "PUDO Beleza Vila Carrão", key="b_nome")
-            c1.text_input("Localização", "Vila Carrão — Zona Leste SP", key="b_local")
-            c2.text_input("Sócio(s)", "", key="b_socio")
-            c2.text_input("CNPJ / Regime", "MEI / Simples Nacional", key="b_cnpj")
-            st.text_area("Proposta de Valor",
-                "Levamos a conveniência de produtos de beleza profissional e de consumo "
-                "até a porta do cliente da Zona Leste, com atendimento personalizado, "
-                "preços de atacado e ponto de retirada de compras online — tudo no mesmo lugar.",
-                height=80, key="b_valor")
-            st.markdown('</div>', unsafe_allow_html=True)
-
-        with st.expander("2. DESCRIÇÃO DO NEGÓCIO"):
-            st.markdown('<div class="sebrae-section-beleza">', unsafe_allow_html=True)
-            col1, col2 = st.columns(2)
-            col1.text_area("Missão",
-                "Empoderar a mulher da Zona Leste com acesso a produtos de beleza "
-                "de qualidade a preços acessíveis e atendimento que respeite seu tempo.",
-                height=80, key="b_missao")
-            col1.text_area("Visão",
-                "Ser a loja de beleza de referência na Vila Carrão até 2027, "
-                "reconhecida pela variedade, confiança e preço justo.",
-                height=80, key="b_visao")
-            col2.text_area("Valores",
-                "• Inclusão e diversidade\n• Transparência nos ingredientes\n"
-                "• Sustentabilidade (produtos veganos e cruelty-free)\n"
-                "• Atendimento humanizado", height=80, key="b_valores")
-            col2.text_area("Diferencial Competitivo",
-                "• Mix amplo: cabelos + maquiagem + skincare + perfumaria\n"
-                "• Produtos para todos os tipos de cabelo (incluindo afro)\n"
-                "• Ponto PUDO integrado (retirada de qualquer e-commerce)\n"
-                "• Consultoria de skincare e colorimetria gratuita", height=80, key="b_dif")
-            st.markdown('</div>', unsafe_allow_html=True)
-
-        with st.expander("3. PRODUTOS E SERVIÇOS"):
-            st.markdown('<div class="sebrae-section-beleza">', unsafe_allow_html=True)
+    # Plano em expanders
+    with st.expander(f"1. ANÁLISE DE MERCADO — {segmento_nome.upper()}", expanded=True):
+        if is_pesca:
             st.markdown("""
-| Categoria | Exemplos | Ticket Médio | Margem Estimada |
-|---|---|---|---|
-| Cabelos — coloração | Tinturas, descolorantes, alisantes, progressivas | R$ 40–180 | 55–70% |
-| Cabelos — tratamento | Shampoo, condicionador, máscaras, leave-in | R$ 25–120 | 50–65% |
-| Maquiagem | Base, batom, rímel, paleta de sombras, primer | R$ 20–150 | 55–70% |
-| Skincare | Hidratante, sérum, protetor solar, tônico | R$ 30–200 | 55–70% |
-| Perfumaria | Águas de colônia, body splash, desodorantes | R$ 25–150 | 50–65% |
-| Unhas | Esmaltes, removedor, acessórios nail art | R$ 10–60 | 60–75% |
-| Serviços PUDO | Retirada e devolução de encomendas | R$ 3–15/pacote | 100% |
+| Indicador | Dado | Fonte |
+|---|---|---|
+| Mercado pesca esportiva Brasil (2024) | R$ 3,5 bilhões | ABPESCA / Sebrae |
+| Crescimento anual estimado | 12% a.a. | Sebrae Agro |
+| Pescadores ativos no Brasil | ~35 milhões | IBAMA |
+| Ticket médio online (pesca) | R$ 150–350 | Mercado Livre |
+| Sazonalidade alta | Março–Setembro | Calendário IBAMA SP |
+| Zona Leste SP — perfil | Classes B2/C1, forte comunidade de lazer | IBGE / DataSP |
+
+**Links de referência:**
+[ABPESCA](https://www.abpesca.com.br) · [Sebrae Pesca](https://www.sebrae.com.br/sites/PortalSebrae/artigos/pesca-esportiva) · [MPA](https://www.gov.br/agricultura/pt-br/assuntos/aquicultura-e-pesca) · [Mercado Livre Pesca](https://www.mercadolivre.com.br/c/pesca)
 """)
-            st.text_area("Produtos que pretende adicionar (preencha)", "", height=60, key="b_prod_add")
-            st.markdown('</div>', unsafe_allow_html=True)
-
-        with st.expander("4. ANÁLISE DE MERCADO"):
-            st.markdown('<div class="sebrae-section-beleza">', unsafe_allow_html=True)
-            st.markdown("##### 4.1 Clientes-Alvo")
+        else:
             st.markdown("""
-| Perfil | Detalhe |
+| Indicador | Dado | Fonte |
+|---|---|---|
+| Mercado beleza / cosméticos Brasil (2024) | R$ 45 bilhões | ABIHPEC |
+| Crescimento e-commerce beleza | +25% (2023→2024) | NielsenIQ |
+| Brasil no ranking mundial de beleza | 4º lugar | Euromonitor |
+| Ticket médio online (beleza) | R$ 80–200 | ABIHPEC |
+| Zona Leste SP — perfil | Classes C1/C2, alta recorrência de compra | IBGE / DataSP |
+
+**Links de referência:**
+[ABIHPEC](https://www.abihpec.org.br/publicacao/panorama-do-setor/) · [ANVISA Cosméticos](https://www.gov.br/anvisa/pt-br/setorregulado/regularizacao/cosmeticos) · [Beauty Fair](https://www.beautyfair.com.br)
+""")
+
+    with st.expander("2. PLANO DE MARKETING — 4Ps"):
+        p1, p2 = st.columns(2)
+        if is_pesca:
+            p1.markdown("**🎣 Produto**\n\nVaras, molinetes, linhas, iscas artificiais, kit iniciante. Foco em pesca em represa/rio (perfil interior paulista).")
+            p1.markdown("**💰 Preço**\n\nCompetitivo com marketplace (−10%), desconto em kit, parcelamento 6×.")
+            p2.markdown("**📍 Praça**\n\nLoja física + Mercado Livre + Shopee + WhatsApp Business.")
+            p2.markdown("**📣 Promoção**\n\nInstagram (#pesca), grupos WhatsApp de pescadores, YouTube reviews, parceria com clubes locais.")
+        else:
+            p1.markdown("**💄 Produto**\n\nColoração, tratamento capilar, maquiagem, skincare, perfumaria. Linha afro/crespo em destaque.")
+            p1.markdown("**💰 Preço**\n\n10–20% abaixo de farmácias, cartão fidelidade, combos temáticos.")
+            p2.markdown("**📍 Praça**\n\nLoja física + Mercado Livre + Shopee + Instagram Shopping + delivery motoboy (raio 5 km).")
+            p2.markdown("**📣 Promoção**\n\nTikTok/Instagram (tutoriais), micro-influenciadoras zona leste, Google Meu Negócio, stories promocionais.")
+
+    with st.expander("3. PLANO OPERACIONAL"):
+        st.markdown(f"""
+**Espaço mínimo:** 45 m²  |  **Ideal:** 60–80 m²
+
+| Zona | Uso | Área |
+|---|---|---|
+| Atendimento / caixa | Balcão + PDV | 8 m² |
+| Exposição de produtos | Prateleiras / gôndolas | 20 m² |
+| Estoque PUDO | Encomendas (giro 24–48h) | 15 m² |
+| Estoque de produtos | {segmento_nome} | 12 m² |
+| Circulação | — | 5 m² |
+
+**Horário:** Seg–Sex 08h–19h | Sáb 08h–14h
+
+**Sistemas:** [Bling ERP](https://www.bling.com.br) · [Melhor Envio](https://www.melhorenvio.com.br) · WhatsApp Business
+
+**Credenciamento PUDO:** [Correios](https://www.correios.com.br/solucoes-empresariais/agentes-correios) · [Jadlog](https://www.jadlog.com.br/jadlog/pickup) · [Pegaki](https://www.pegaki.com.br/seja-um-ponto) · [Shopee Drops](https://shopee.com.br/m/shopee-drops)
+""")
+
+    with st.expander("4. PLANO FINANCEIRO — CAPEX e OPEX"):
+        cg1, cg2 = st.columns(2)
+        cg1.markdown(f"""
+**CAPEX — Investimento Inicial**
+
+| Item | Valor |
 |---|---|
-| **Gênero predominante** | Feminino (80%) |
-| **Faixa etária** | 18–50 anos |
-| **Classe social** | C1 e C2 (renda R$ 1.500–5.000/mês) |
-| **Comportamento** | Alta recorrência; sensível a promoções e tendências |
-| **Canal preferido** | Físico para experimentar + online para recompra |
-| **Frequência** | Quinzenal a mensal |
-| **Motivação** | Autoestima, cuidado pessoal, beleza profissional em casa |
+| Obra / Reforma | R$ {capex_obra:,.0f} |
+| Equipamentos + TI + Segurança | R$ {capex_equip:,.0f} |
+| Estoque inicial | R$ {capex_est:,.0f} |
+| Marketing inicial | R$ {capex_mkt_i:,.0f} |
+| Abertura empresa | R$ {capex_aber:,.0f} |
+| Capital de giro ({meses_cg}m) | R$ {opex_fixo*meses_cg:,.0f} |
+| **TOTAL** | **R$ {capex_total:,.0f}** |
+""".replace(",","."))
+        cg2.markdown(f"""
+**OPEX — Custo Fixo Mensal**
+
+| Item | Valor |
+|---|---|
+| Aluguel + Condomínio | R$ {aluguel+condominio:,.0f} |
+| Pessoal + Encargos | R$ {salarios+enc_val:,.0f} |
+| Energia + Internet | R$ {energia+internet:,.0f} |
+| Marketing / ADS | R$ {mkt_mensal:,.0f} |
+| Contador + ERP | R$ {contador+sistema_erp:,.0f} |
+| Embalagens + Seguros + Banco | R$ {embalagens+seguros+taxas_banco:,.0f} |
+| **TOTAL FIXO** | **R$ {opex_fixo:,.0f}** |
+""".replace(",","."))
+
+    with st.expander("5. PLANO DE AÇÃO — Primeiros 90 dias"):
+        st.markdown("""
+| Semana | Ações |
+|---|---|
+| 1–2 | Definir ponto, assinar contrato, dar entrada na obra |
+| 3–4 | Abrir empresa (MEI/ME), conta PJ, contratar contador |
+| 5–6 | Credenciar 2 transportadoras PUDO, instalar sistemas (ERP + câmeras) |
+| 7–8 | Comprar estoque inicial, montar loja, fotografar produtos |
+| 9–10 | Cadastrar produtos nos marketplaces, configurar WhatsApp Business |
+| 11–12 | Soft opening — convidar primeiros clientes, coletar avaliações |
+| 13+ | Analisar primeiros dados, ajustar mix de produtos, escalar ADS |
+
+**Regulação e licenças:** [Portal Empreendedor](https://www.gov.br/empresas-e-negocios/pt-br/empreendedor) · [JUCESP](https://www.jucesp.sp.gov.br) · [Alvará SP](https://www.prefeitura.sp.gov.br/cidade/secretarias/licenciamentos)
 """)
-            st.text_area("Observações sobre clientes da sua região", "", height=60, key="b_clientes")
-
-            st.markdown("##### 4.2 Concorrentes")
-            st.markdown("""
-| Concorrente | Tipo | Ponto Fraco |
-|---|---|---|
-| Farmácias (Drogasil, Pague Menos) | Física | Variedade limitada, preço alto |
-| Salões de beleza | Serviço | Não vendem produto retail |
-| Beleza na Web / Sephora online | E-commerce | Frete alto, sem consultoria |
-| Camelô / feiras | Físico | Procedência duvidosa |
-""")
-            st.text_area("Concorrentes identificados na sua região (preencha)", "", height=60, key="b_concorrentes")
-
-            st.markdown("##### 4.3 Fornecedores Recomendados")
-            st.markdown("""
-| Fornecedor | Produtos | Link |
-|---|---|---|
-| **Wella / Coty** | Coloração profissional | [wella.com/pt-br](https://www.wella.com/pt-br) |
-| **L'Oréal Professionnel** | Cabelos e skincare | Distribuidores autorizados SP |
-| **Amend / Griffus** | Cabelos afro e gerais | Atacado SP |
-| **Eudora / O Boticário Atacado** | Maquiagem e perfumaria | Via revendedor |
-| **Atacado Brás / Bom Retiro** | Mix geral beleza | Pesquisa presencial |
-""")
-            st.markdown("**Regulação ANVISA cosméticos:** [gov.br/anvisa/cosmeticos](https://www.gov.br/anvisa/pt-br/setorregulado/regularizacao/cosmeticos)")
-            st.markdown("**Dados do setor:** [ABIHPEC](https://www.abihpec.org.br/publicacao/panorama-do-setor/)")
-            st.markdown('</div>', unsafe_allow_html=True)
-
-        with st.expander("5. PLANO DE MARKETING — 4Ps"):
-            st.markdown('<div class="sebrae-section-beleza">', unsafe_allow_html=True)
-            p1, p2 = st.columns(2)
-            p1.markdown("**💄 PRODUTO**")
-            p1.text_area("Linha de produtos e diferenciais",
-                "• Mix completo: cabelos (todos tipos), maquiagem, skincare, perfumaria\n"
-                "• Produtos veganos e cruelty-free em destaque\n"
-                "• Linha específica para cabelos afro e crespos\n"
-                "• Kits presente (natal, dia das mães, aniversário)", height=120, key="b_produto")
-            p1.markdown("**💰 PREÇO**")
-            p1.text_area("Estratégia de preço",
-                "• Preços 10–20% abaixo de farmácias\n"
-                "• Programa fidelidade: carimbo (10ª compra = 1 produto grátis)\n"
-                "• Combos temáticos com desconto\n"
-                "• Parcelamento em até 3x sem juros", height=120, key="b_preco")
-            p2.markdown("**📍 PRAÇA**")
-            p2.text_area("Canais de venda",
-                "• Loja física — Vila Carrão\n"
-                "• WhatsApp Business (catálogo + pedidos)\n"
-                "• Instagram Shopping\n"
-                "• Mercado Livre e Shopee (produtos top sellers)\n"
-                "• Delivery via motoboy (raio 5 km)", height=120, key="b_praca")
-            p2.markdown("**📣 PROMOÇÃO**")
-            p2.text_area("Ações de marketing",
-                "• TikTok e Instagram: tutoriais de maquiagem/cabelo (diário)\n"
-                "• Micro-influenciadoras locais da Zona Leste (permuta)\n"
-                "• Stories com promoções relâmpago\n"
-                "• Google Meu Negócio com fotos atualizadas\n"
-                "• Cartão fidelidade físico", height=120, key="b_promo")
-            st.markdown('</div>', unsafe_allow_html=True)
-
-        with st.expander("6. PLANO OPERACIONAL"):
-            st.markdown('<div class="sebrae-section-beleza">', unsafe_allow_html=True)
-            st.markdown("""
-**Layout sugerido (60 m²):**
-- Balcão de atendimento + caixa: 8 m²
-- Exposição beleza (gôndolas, display): 22 m²
-- Área de estoque PUDO (encomendas): 12 m²
-- Estoque de produtos (cosméticos): 13 m²
-- Provador de maquiagem / espelho: 5 m²
-
-**Atenção regulatória:**
-- Cosméticos grau 1 (shampoo, batom): apenas notificação ANVISA no fornecedor
-- Cosméticos grau 2 (alisantes, tinturas): exige registro ANVISA — comprar só de distribuidores com nota fiscal
-
-**Horário de funcionamento:**
-- Seg–Sex: 08h00 às 19h30 | Sáb: 08h00 às 16h00
-""")
-            st.text_area("Anotações operacionais (preencha)", "", height=60, key="b_op")
-            st.markdown("**Links:** [ANVISA cosméticos](https://www.gov.br/anvisa/pt-br/setorregulado/regularizacao/cosmeticos) · [Bling ERP](https://www.bling.com.br) · [Beauty Fair SP](https://www.beautyfair.com.br)")
-            st.markdown('</div>', unsafe_allow_html=True)
-
-    # ── Projeção Financeira Beleza ───────────────────────────────────────────
-    with financ_b:
-        st.markdown('<div class="sebrae-section-beleza"><b>Configure os parâmetros do segmento Beleza</b></div>', unsafe_allow_html=True)
-
-        c1, c2, c3 = st.columns(3)
-        b_itens    = c1.number_input("Itens beleza vendidos/mês (meta M6)", 0, 3000, 100, 5, key="bf_itens")
-        b_ticket   = c1.number_input("Ticket médio beleza (R$)", 0.0, 500.0, 90.0, 5.0, key="bf_tick")
-        b_margem   = c1.slider("Margem bruta (%)", 0, 100, 58, key="bf_marg")
-        b_cresc    = c2.slider("Crescimento mensal meses 1→6 (%)", 0, 60, 20, key="bf_cresc")
-        b_capex_e  = c2.number_input("Estoque inicial Beleza (R$)", 0, 100000, 6000, 500, key="bf_capex")
-        b_capex_o  = c2.number_input("Outros CAPEX Beleza (R$)", 0, 50000, 4000, 500, key="bf_capo")
-        b_meses_cg = c3.slider("Meses de capital de giro", 1, 6, 3, key="bf_cg")
-
-        rec_beleza_m6 = b_itens * b_ticket * (b_margem / 100)
-        capex_beleza  = b_capex_e + b_capex_o + opex_fixo_base * b_meses_cg
-        df_b = projecao_12m(rec_beleza_m6, 100 - b_margem, b_cresc, opex_fixo_base, aliquota)
-        be_b = next((i + 1 for i, s in enumerate(df_b["Saldo Acumulado"]) if s >= 0), None)
-
-        k1, k2, k3, k4 = st.columns(4)
-        k1.metric("CAPEX Beleza", f"R$ {capex_beleza:,.0f}".replace(",", "."))
-        k2.metric("Receita (margem) Mês 6", f"R$ {rec_beleza_m6 + rec_logistica:,.0f}".replace(",", "."))
-        res6b = df_b["Resultado"].iloc[5]
-        k3.metric("Resultado Mês 6", f"R$ {res6b:,.0f}".replace(",", "."))
-        k4.metric("Break-even (mês)", f"Mês {be_b}" if be_b else "Após 12m")
-
-        st.plotly_chart(grafico_fc(df_b, "#ad1457"), use_container_width=True)
-        st.dataframe(tabela_fc(df_b), use_container_width=True, hide_index=True)
-
-        st.divider()
-        st.subheader("📦 Mix de Estoque Sugerido — Beleza")
-        dados_mix_b = {
-            "Categoria": ["Coloração / cabelos", "Tratamento capilar", "Maquiagem",
-                          "Skincare", "Perfumaria / unhas"],
-            "% do Estoque": [25, 25, 20, 15, 15],
-            "Valor Sugerido (R$)": [
-                round(b_capex_e * 0.25), round(b_capex_e * 0.25),
-                round(b_capex_e * 0.20), round(b_capex_e * 0.15),
-                round(b_capex_e * 0.15)
-            ]
-        }
-        st.dataframe(pd.DataFrame(dados_mix_b), use_container_width=True, hide_index=True)
-        st.markdown("**Regulação:** [ANVISA cosméticos](https://www.gov.br/anvisa/pt-br/setorregulado/regularizacao/cosmeticos)")
-        st.markdown("**Dados do setor:** [ABIHPEC](https://www.abihpec.org.br/publicacao/panorama-do-setor/) · [Beauty Fair](https://www.beautyfair.com.br)")
-        st.markdown("**Venda online:** [Mercado Livre Seller](https://www.mercadolivre.com.br/vendedor) · [Shopee Seller](https://seller.shopee.com.br)")
 
 st.divider()
-st.caption("📦 PUDO Vila Carrão — Plano de Negócio v2.0 | Modelo SEBRAE integrado | Dados estimados para fins de planejamento.")
+st.caption("📦 PUDO Vila Carrão — Plano de Negócio v3.0 | Dashboard Executivo · Financeiro · DRE · Plano SEBRAE")
