@@ -317,9 +317,7 @@ with t_fin:
                  "relative","relative","total","total"],
         x=cats, y=vals,
         connector=dict(line=dict(color="#ccc", width=1)),
-        increasing=dict(marker_color="#2563eb"),
-        decreasing=dict(marker_color="#dc2626"),
-        totals=dict(marker_color=["#7c3aed","#16a34a" if lucro_m6>=0 else "#dc2626"]),
+        marker_color=cores_wf,
         text=[f"R$ {abs(v):,.0f}".replace(",",".") for v in vals],
         textposition="outside",
     ))
