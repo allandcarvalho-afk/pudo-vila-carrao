@@ -209,8 +209,6 @@ t_dash, t_fin, t_cont, t_plano = st.tabs([
 # TAB 1 — DASHBOARD EXECUTIVO
 # ════════════════════════════════════════════════
 with t_dash:
-    # KPIs héroe
-    c1,c2,c3,c4,c5,c6 = st.columns(6)
     def kpi(col, label, val, sub="", cls=""):
         col.markdown(f"""
         <div class="hero-card {cls}">
@@ -219,14 +217,19 @@ with t_dash:
           <div class="hero-sub">{sub}</div>
         </div>""", unsafe_allow_html=True)
 
-    kpi(c1,"Investimento Total",   f"R$ {capex_total:,.0f}".replace(",","."), "CAPEX")
-    kpi(c2,"OPEX Fixo / Mês",     f"R$ {opex_fixo:,.0f}".replace(",","."),   "custos fixos", "")
-    kpi(c3,"Receita Mês 6",       f"R$ {rec_total_m6:,.0f}".replace(",","."), "cenário realista", "green")
-    kpi(c4,"EBITDA Mês 6",        f"R$ {ebitda_m6:,.0f}".replace(",","."),
-        f"Margem {margem_b_m6:.1f}%", "green" if ebitda_m6>0 else "red")
-    kpi(c5,"Break-even",          f"Mês {be_mes}" if be_mes else ">12m",
-        f"Payback {payback:.1f}m", "purple")
-    kpi(c6,"ROI 12 meses",        f"{roi_12:.1f}%", "retorno sobre CAPEX", "teal")
+    # Linha 1
+    c1, c2, c3 = st.columns(3)
+    kpi(c1, "Investimento Total",  f"R$ {capex_total:,.0f}".replace(",","."), "CAPEX total necessário")
+    kpi(c2, "OPEX Fixo / Mês",    f"R$ {opex_fixo:,.0f}".replace(",","."),   "custos fixos mensais")
+    kpi(c3, "Receita Mês 6",      f"R$ {rec_total_m6:,.0f}".replace(",","."), "cenário realista", "green")
+    st.markdown("<div style='margin-top:10px'></div>", unsafe_allow_html=True)
+    # Linha 2
+    c4, c5, c6 = st.columns(3)
+    kpi(c4, "EBITDA Mês 6",       f"R$ {ebitda_m6:,.0f}".replace(",","."),
+        f"Margem {margem_b_m6:.1f}%", "green" if ebitda_m6 > 0 else "red")
+    kpi(c5, "Break-even / Payback", f"Mês {be_mes}" if be_mes else ">12m",
+        f"Payback {payback:.1f} meses", "purple")
+    kpi(c6, "ROI 12 meses",       f"{roi_12:.1f}%", "retorno sobre CAPEX", "teal")
 
     st.markdown("<br>", unsafe_allow_html=True)
     col_g1, col_g2 = st.columns([2,1])
@@ -608,26 +611,222 @@ with t_plano:
             p2.markdown("**📍 Praça**\n\nLoja física + Mercado Livre + Shopee + Instagram Shopping + delivery motoboy (raio 5 km).")
             p2.markdown("**📣 Promoção**\n\nTikTok/Instagram (tutoriais), micro-influenciadoras zona leste, Google Meu Negócio, stories promocionais.")
 
-    with st.expander("3. PLANO OPERACIONAL"):
-        st.markdown(f"""
-**Espaço mínimo:** 45 m²  |  **Ideal:** 60–80 m²
+    with st.expander("3. PLANO OPERACIONAL — Layout, Estrutura e Metragem", expanded=False):
+        col_planta, col_tabop = st.columns([3, 2])
 
-| Zona | Uso | Área |
+        with col_planta:
+            st.markdown("##### 📐 Planta Baixa — Ponto PUDO (60 m²  |  8m × 7,5m)")
+
+            fig_planta = go.Figure()
+
+            # Zonas principais
+            zonas = [
+                # x0,y0,x1,y1, fill, borda, label, sublabel
+                (0,0,8,1.0,   "#fff8dc","#d97706", "ENTRADA / FACHADA", "porta central — 1,2m"),
+                (0,1.0,5,4.0, "#dcfce7","#16a34a", "EXPOSIÇÃO DE PRODUTOS", "20 m²  |  gôndolas e prateleiras"),
+                (5,1.0,8,4.0, "#dbeafe","#2563eb", "BALCÃO ATENDIMENTO\n+ CAIXA / PDV", "8 m²"),
+                (0,4.0,4,6.5, "#fef3c7","#d97706", "ESTOQUE PRODUTO", f"10 m²  |  {segmento_nome}"),
+                (4,4.0,8,6.5, "#ede9fe","#7c3aed", "ESTOQUE PUDO\n(encomendas)", "10 m²  |  giro 24–48h"),
+                (0,6.5,5.5,7.5,"#f1f5f9","#64748b","ÁREA COMUM / CIRCULAÇÃO","5 m²"),
+                (5.5,6.5,8,7.5,"#e2e8f0","#64748b","BANHEIRO","3 m²"),
+            ]
+            for x0,y0,x1,y1,fc,bc,lbl,sub in zonas:
+                fig_planta.add_shape(type="rect", x0=x0, y0=y0, x1=x1, y1=y1,
+                    fillcolor=fc, line=dict(color=bc, width=2))
+                fig_planta.add_annotation(
+                    x=(x0+x1)/2, y=(y0+y1)/2,
+                    text=f"<b>{lbl}</b><br><span style='font-size:9px;color:#555'>{sub}</span>",
+                    showarrow=False, font=dict(size=9.5), align="center",
+                    bgcolor="rgba(255,255,255,0.6)", borderpad=2)
+
+            # Mobiliário — prateleiras parede esquerda (exposição)
+            for yi in [1.25, 1.75, 2.25, 2.75, 3.25, 3.65]:
+                fig_planta.add_shape(type="rect", x0=0.05, y0=yi, x1=0.35, y1=yi+0.15,
+                    fillcolor="#92400e", line=dict(color="#78350f", width=1))
+
+            # Prateleiras parede direita (exposição)
+            for yi in [1.25, 1.75, 2.25, 2.75, 3.25]:
+                fig_planta.add_shape(type="rect", x0=4.65, y0=yi, x1=4.95, y1=yi+0.15,
+                    fillcolor="#92400e", line=dict(color="#78350f", width=1))
+
+            # Gôndola central (exposição)
+            fig_planta.add_shape(type="rect", x0=1.5, y0=1.4, x1=1.8, y1=3.7,
+                fillcolor="#a16207", line=dict(color="#78350f", width=1))
+            fig_planta.add_shape(type="rect", x0=2.8, y0=1.4, x1=3.1, y1=3.7,
+                fillcolor="#a16207", line=dict(color="#78350f", width=1))
+
+            # Balcão (L shape)
+            fig_planta.add_shape(type="rect", x0=5.1, y0=1.1, x1=7.9, y1=1.6,
+                fillcolor="#1e40af", line=dict(color="#1e3a8a", width=1))
+            fig_planta.add_shape(type="rect", x0=7.4, y0=1.6, x1=7.9, y1=3.0,
+                fillcolor="#1e40af", line=dict(color="#1e3a8a", width=1))
+
+            # Cadeira / operador
+            fig_planta.add_shape(type="circle", x0=6.2, y0=1.8, x1=6.7, y1=2.3,
+                fillcolor="#93c5fd", line=dict(color="#2563eb", width=1))
+
+            # Prateleiras estoque PUDO (fundo)
+            for xi in [4.2, 5.0, 5.8, 6.6, 7.4]:
+                fig_planta.add_shape(type="rect", x0=xi, y0=4.15, x1=xi+0.5, y1=6.35,
+                    fillcolor="#c4b5fd", line=dict(color="#7c3aed", width=1), opacity=0.6)
+
+            # Prateleiras estoque produto (fundo)
+            for xi in [0.2, 1.0, 1.8, 2.6, 3.4]:
+                fig_planta.add_shape(type="rect", x0=xi, y0=4.15, x1=xi+0.5, y1=6.35,
+                    fillcolor="#fde68a", line=dict(color="#d97706", width=1), opacity=0.7)
+
+            # Porta entrada
+            fig_planta.add_shape(type="rect", x0=3.4, y0=-0.05, x1=4.6, y1=0.12,
+                fillcolor="#d97706", line=dict(color="#b45309", width=2))
+            fig_planta.add_annotation(x=4.0, y=-0.25, text="PORTA 1,2m",
+                showarrow=False, font=dict(size=8, color="#b45309"))
+
+            # Cotas externas
+            for xi, lbl in [(0,"0m"),(2,"2m"),(4,"4m"),(6,"6m"),(8,"8m")]:
+                fig_planta.add_annotation(x=xi, y=-0.5, text=lbl,
+                    showarrow=False, font=dict(size=8, color="#666"))
+            for yi, lbl in [(0,"0m"),(1.5,"1,5m"),(3,"3m"),(4.5,"4,5m"),(6,"6m"),(7.5,"7,5m")]:
+                fig_planta.add_annotation(x=-0.45, y=yi, text=lbl,
+                    showarrow=False, font=dict(size=8, color="#666"))
+
+            # Legenda mobiliário
+            fig_planta.add_annotation(x=4.0, y=7.9,
+                text="<b>Legenda:</b>  🟫 Prateleiras/Gôndolas  🔵 Balcão  🟣 Rack PUDO  🟡 Rack Produto",
+                showarrow=False, font=dict(size=8.5), align="center")
+
+            fig_planta.update_layout(
+                height=480,
+                plot_bgcolor="white", paper_bgcolor="white",
+                showlegend=False,
+                margin=dict(l=30, r=10, t=20, b=30),
+                xaxis=dict(range=[-0.6, 8.5], showgrid=False, zeroline=False,
+                           showticklabels=False, fixedrange=True),
+                yaxis=dict(range=[-0.7, 8.1], showgrid=False, zeroline=False,
+                           showticklabels=False, scaleanchor="x", fixedrange=True),
+            )
+            st.plotly_chart(fig_planta, use_container_width=True)
+
+        with col_tabop:
+            st.markdown("##### Zonas e Metragem")
+            st.markdown(f"""
+| Zona | Área | Uso |
 |---|---|---|
-| Atendimento / caixa | Balcão + PDV | 8 m² |
-| Exposição de produtos | Prateleiras / gôndolas | 20 m² |
-| Estoque PUDO | Encomendas (giro 24–48h) | 15 m² |
-| Estoque de produtos | {segmento_nome} | 12 m² |
-| Circulação | — | 5 m² |
-
-**Horário:** Seg–Sex 08h–19h | Sáb 08h–14h
-
-**Sistemas:** [Bling ERP](https://www.bling.com.br) · [Melhor Envio](https://www.melhorenvio.com.br) · WhatsApp Business
-
-**Credenciamento PUDO:** [Correios](https://www.correios.com.br/solucoes-empresariais/agentes-correios) · [Jadlog](https://www.jadlog.com.br/jadlog/pickup) · [Pegaki](https://www.pegaki.com.br/seja-um-ponto) · [Shopee Drops](https://shopee.com.br/m/shopee-drops)
+| Exposição produtos | 20 m² | Gôndolas + prateleiras parede |
+| Balcão + caixa | 8 m² | Atendimento, PDV, embalagem |
+| Estoque PUDO | 10 m² | Encomendas giro 24–48h |
+| Estoque produto | 10 m² | {segmento_nome} |
+| Circulação | 5 m² | Corredor cliente |
+| Banheiro | 3 m² | Uso interno |
+| Entrada/fachada | 4 m² | Vitrine e acesso |
+| **TOTAL** | **60 m²** | |
+""")
+            st.markdown("##### Mobiliário Mínimo")
+            st.markdown("""
+| Item | Qtd | Estimativa |
+|---|---|---|
+| Prateleiras parede (2m) | 8 un | R$ 2.400 |
+| Gôndola dupla face | 2 un | R$ 1.600 |
+| Balcão L (vidro) | 1 un | R$ 1.800 |
+| Rack estoque PUDO | 3 un | R$ 900 |
+| Rack estoque produto | 3 un | R$ 900 |
+| Computador + impressora | 1 set | R$ 3.500 |
+| Balança (até 30kg) | 1 un | R$ 350 |
+| Câmeras (4 pontos) | 1 kit | R$ 1.800 |
+| Ar-condicionado 9.000 BTU | 1 un | R$ 2.800 |
+| **Total Mobiliário** | | **≈ R$ 16.050** |
+""")
+            st.markdown("##### Horário e Operação")
+            st.markdown("""
+- **Seg–Sex:** 08h00 às 19h00
+- **Sábado:** 08h00 às 14h00
+- **Funcionários:** 1 titular + 1 atendente meio período
+- **Sistemas:** [Bling ERP](https://www.bling.com.br) · [Melhor Envio](https://www.melhorenvio.com.br)
+- **PUDO credenciamento:** [Correios](https://www.correios.com.br/solucoes-empresariais/agentes-correios) · [Jadlog](https://www.jadlog.com.br/jadlog/pickup) · [Pegaki](https://www.pegaki.com.br/seja-um-ponto)
 """)
 
-    with st.expander("4. PLANO FINANCEIRO — CAPEX e OPEX"):
+    with st.expander("4. SEGMENTO PUDO — Detalhamento Operacional e Modelo de Receita"):
+        pa, pb = st.columns(2)
+        with pa:
+            st.markdown("##### O que é o PUDO e como funciona")
+            st.markdown("""
+**PUDO (Pick-Up & Drop-Off)** é um ponto físico credenciado por transportadoras e marketplaces para que o consumidor retire ou devolva encomendas sem depender de horário de Correios.
+
+**Fluxo de Retirada:**
+```
+Transportadora entrega pacote no ponto
+       ↓
+Registro no sistema + etiqueta de localização
+       ↓
+Notificação automática ao destinatário (WhatsApp/SMS)
+       ↓
+Cliente apresenta código QR ou CPF
+       ↓
+Entrega + assinatura digital
+       ↓
+Comissão registrada automaticamente
+```
+
+**Fluxo de Devolução (Logística Reversa):**
+```
+Cliente chega com produto + código de devolução
+       ↓
+Validação no sistema do marketplace
+       ↓
+Acondicionamento + etiqueta de retorno
+       ↓
+Coleta pela transportadora (diária)
+       ↓
+Comissão registrada
+```
+""")
+            st.markdown("##### Transportadoras — Comissões de Mercado")
+            st.markdown("""
+| Parceiro | Comissão / Pacote | Coleta | Integração |
+|---|---|---|---|
+| Correios Agente | R$ 2,50–4,00 | Diária | Sistema Correios |
+| Jadlog Pickup | R$ 3,00–5,00 | Diária | App Jadlog |
+| Pegaki | R$ 3,00–4,50 | Sob demanda | API Pegaki |
+| Shopee Drops | R$ 2,00–3,50 | Diária | App Shopee |
+| Mercado Envios | R$ 3,50–5,50 | Diária | App ML |
+| Total Express | R$ 3,00–4,00 | Diária | Sistema TE |
+""")
+
+        with pb:
+            st.markdown("##### Capacidade e Volumetria")
+            st.markdown(f"""
+| Métrica | Mínimo | Meta M6 | Referência Madura |
+|---|---|---|---|
+| Pacotes PUDO / dia | 5–10 | 15–20 | 40–60 |
+| Pacotes PUDO / mês | 100–200 | 300–500 | 1.000–1.500 |
+| Devoluções / mês | 10–20 | 60–100 | 200–400 |
+| Fulfilment / mês | 5–10 | 40–60 | 100–200 |
+| Capacidade armazenagem simultânea | 30 pacotes | 80 pacotes | 200 pacotes |
+| Giro médio por pacote | 1–2 dias | 1,5 dias | 1 dia |
+
+**Piso garantido (configuração atual):**
+- Receita PUDO: **R$ {rec_pudo_m:,.0f}/mês**
+- Receita Reversa: **R$ {rec_rev_m:,.0f}/mês**
+- Receita Fulfilment: **R$ {rec_full_m:,.0f}/mês**
+- **Base total PUDO: R$ {rec_log_base:,.0f}/mês** ← independe das vendas de produto
+""".replace(",","."))
+
+            st.markdown("##### Requisitos para Credenciamento")
+            st.markdown("""
+| Requisito | Detalhe |
+|---|---|
+| CNPJ ativo | MEI ou ME — qualquer regime |
+| Ponto físico | Endereço comercial com alvará |
+| Conexão internet | Mínimo 50 Mbps estável |
+| Computador + impressora | Térmica para etiquetas |
+| Câmera de segurança | Mínimo 1 câmera no balcão |
+| Horário mínimo | 6h/dia, 5 dias/semana |
+| Seguro básico | Recomendado pelas transportadoras |
+
+**Links de cadastro:**
+[Correios](https://www.correios.com.br/solucoes-empresariais/agentes-correios) · [Jadlog](https://www.jadlog.com.br/jadlog/pickup) · [Pegaki](https://www.pegaki.com.br/seja-um-ponto) · [Shopee](https://shopee.com.br/m/shopee-drops) · [ML Envios](https://www.mercadolivre.com.br/agencias)
+""")
+
+    with st.expander("5. PLANO FINANCEIRO — CAPEX e OPEX"):
         cg1, cg2 = st.columns(2)
         cg1.markdown(f"""
 **CAPEX — Investimento Inicial**
@@ -656,7 +855,7 @@ with t_plano:
 | **TOTAL FIXO** | **R$ {opex_fixo:,.0f}** |
 """.replace(",","."))
 
-    with st.expander("5. PLANO DE AÇÃO — Primeiros 90 dias"):
+    with st.expander("6. PLANO DE AÇÃO — Primeiros 90 dias"):
         st.markdown("""
 | Semana | Ações |
 |---|---|
