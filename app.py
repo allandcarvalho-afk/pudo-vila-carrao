@@ -198,11 +198,12 @@ st.markdown(f"""
 # ══════════════════════════════════════════════════════════════
 # TABS PRINCIPAIS
 # ══════════════════════════════════════════════════════════════
-t_dash, t_fin, t_cont, t_plano = st.tabs([
+t_dash, t_fin, t_cont, t_plano, t_draw = st.tabs([
     "🎯  Dashboard Executivo",
     "💰  Financeiro",
     "📊  Contabilidade (DRE)",
     "📋  Plano de Negócio",
+    "✏️  Desenho da Estrutura",
 ])
 
 # ════════════════════════════════════════════════
@@ -870,5 +871,240 @@ Comissão registrada
 **Regulação e licenças:** [Portal Empreendedor](https://www.gov.br/empresas-e-negocios/pt-br/empreendedor) · [JUCESP](https://www.jucesp.sp.gov.br) · [Alvará SP](https://www.prefeitura.sp.gov.br/cidade/secretarias/licenciamentos)
 """)
 
+# ════════════════════════════════════════════════
+# TAB 5 — DESENHO DA ESTRUTURA
+# ════════════════════════════════════════════════
+with t_draw:
+
+    TIPOS_ZONA = {
+        "Balcão / Caixa":      {"cor": "#bfdbfe", "borda": "#2563eb", "icone": "🔵"},
+        "Exposição / Vitrine": {"cor": "#bbf7d0", "borda": "#16a34a", "icone": "🟢"},
+        "Estoque PUDO":        {"cor": "#ddd6fe", "borda": "#7c3aed", "icone": "🟣"},
+        "Estoque Produto":     {"cor": "#fef08a", "borda": "#ca8a04", "icone": "🟡"},
+        "Prateleira Parede":   {"cor": "#fed7aa", "borda": "#ea580c", "icone": "🟠"},
+        "Gôndola Central":     {"cor": "#d1fae5", "borda": "#059669", "icone": "🟩"},
+        "Banheiro":            {"cor": "#e2e8f0", "borda": "#64748b", "icone": "⬜"},
+        "Entrada / Fachada":   {"cor": "#fef9c3", "borda": "#d97706", "icone": "🚪"},
+        "Circulação":          {"cor": "#f8fafc", "borda": "#94a3b8", "icone": "➡️"},
+        "Outro":               {"cor": "#fce7f3", "borda": "#be185d", "icone": "🔴"},
+    }
+
+    TEMPLATES = {
+        "Ponto 45 m² (9m × 5m)": [
+            ("Entrada / Fachada",   0.0, 0.0, 9.0, 0.8),
+            ("Exposição / Vitrine", 0.0, 0.8, 5.5, 3.5),
+            ("Balcão / Caixa",      5.5, 0.8, 9.0, 3.5),
+            ("Estoque PUDO",        0.0, 3.5, 4.5, 5.0),
+            ("Estoque Produto",     4.5, 3.5, 9.0, 5.0),
+        ],
+        "Ponto 60 m² (8m × 7,5m)": [
+            ("Entrada / Fachada",   0.0, 0.0, 8.0, 1.0),
+            ("Exposição / Vitrine", 0.0, 1.0, 5.0, 4.0),
+            ("Balcão / Caixa",      5.0, 1.0, 8.0, 4.0),
+            ("Estoque Produto",     0.0, 4.0, 4.0, 6.5),
+            ("Estoque PUDO",        4.0, 4.0, 8.0, 6.5),
+            ("Circulação",          0.0, 6.5, 5.5, 7.5),
+            ("Banheiro",            5.5, 6.5, 8.0, 7.5),
+        ],
+        "Ponto 80 m² (10m × 8m)": [
+            ("Entrada / Fachada",   0.0, 0.0,10.0, 1.0),
+            ("Exposição / Vitrine", 0.0, 1.0, 6.0, 5.0),
+            ("Balcão / Caixa",      6.0, 1.0,10.0, 4.0),
+            ("Estoque PUDO",        6.0, 4.0,10.0, 7.5),
+            ("Estoque Produto",     0.0, 5.0, 5.0, 7.5),
+            ("Gôndola Central",     2.0, 1.5, 2.5, 4.5),
+            ("Gôndola Central",     4.0, 1.5, 4.5, 4.5),
+            ("Banheiro",            5.0, 5.0, 6.0, 7.5),
+            ("Circulação",          0.0, 7.5,10.0, 8.0),
+        ],
+        "Em branco": [],
+    }
+
+    # ── Session state
+    if "zonas" not in st.session_state:
+        st.session_state.zonas = []
+    if "lw" not in st.session_state:
+        st.session_state.lw = 10.0
+    if "lh" not in st.session_state:
+        st.session_state.lh = 8.0
+
+    # ── Layout: controles à esquerda, planta à direita
+    ctrl, planta = st.columns([1, 2.5])
+
+    with ctrl:
+        st.markdown("#### 📐 Editor de Planta")
+
+        # Template loader
+        tmpl = st.selectbox("Carregar template", list(TEMPLATES.keys()), index=1)
+        if st.button("Carregar template", use_container_width=True):
+            st.session_state.zonas = [
+                {"tipo": t, "x0": x0, "y0": y0, "x1": x1, "y1": y1,
+                 "nome": t, "id": i}
+                for i, (t, x0, y0, x1, y1) in enumerate(TEMPLATES[tmpl])
+            ]
+            # set canvas size from template name
+            if "9m" in tmpl:
+                st.session_state.lw, st.session_state.lh = 9.0, 5.0
+            elif "10m" in tmpl:
+                st.session_state.lw, st.session_state.lh = 10.0, 8.0
+            else:
+                st.session_state.lw, st.session_state.lh = 8.0, 7.5
+
+        st.divider()
+
+        # Canvas size
+        st.markdown("**Dimensões do imóvel**")
+        cw, ch = st.columns(2)
+        st.session_state.lw = cw.number_input("Largura (m)", 3.0, 30.0,
+            float(st.session_state.lw), 0.5, key="inp_lw")
+        st.session_state.lh = ch.number_input("Profund. (m)", 3.0, 30.0,
+            float(st.session_state.lh), 0.5, key="inp_lh")
+
+        area_total = st.session_state.lw * st.session_state.lh
+        st.markdown(f"**Área total: {area_total:.1f} m²**")
+
+        st.divider()
+
+        # Add zone form
+        st.markdown("**➕ Adicionar zona / mobiliário**")
+        with st.form("form_zona", clear_on_submit=True):
+            tipo = st.selectbox("Tipo", list(TIPOS_ZONA.keys()))
+            nome = st.text_input("Rótulo (opcional)", placeholder="ex: Balcão Principal")
+            f1, f2 = st.columns(2)
+            x0_f = f1.number_input("X início (m)", 0.0, 30.0, 0.0, 0.5)
+            y0_f = f1.number_input("Y início (m)", 0.0, 30.0, 0.0, 0.5)
+            x1_f = f2.number_input("X fim (m)",    0.0, 30.0, 2.0, 0.5)
+            y1_f = f2.number_input("Y fim (m)",    0.0, 30.0, 2.0, 0.5)
+            ok = st.form_submit_button("Adicionar", use_container_width=True)
+            if ok and x1_f > x0_f and y1_f > y0_f:
+                uid = len(st.session_state.zonas)
+                st.session_state.zonas.append({
+                    "tipo": tipo, "nome": nome or tipo,
+                    "x0": x0_f, "y0": y0_f, "x1": x1_f, "y1": y1_f,
+                    "id": uid,
+                })
+
+        st.divider()
+
+        # List + delete
+        st.markdown("**🗂 Zonas adicionadas**")
+        if not st.session_state.zonas:
+            st.caption("Nenhuma zona ainda. Carregue um template ou adicione manualmente.")
+        else:
+            for i, z in enumerate(st.session_state.zonas):
+                icone = TIPOS_ZONA.get(z["tipo"], TIPOS_ZONA["Outro"])["icone"]
+                area_z = (z["x1"]-z["x0"]) * (z["y1"]-z["y0"])
+                label  = f"{icone} {z['nome']}  ({area_z:.1f} m²)"
+                col_z, col_del = st.columns([4, 1])
+                col_z.markdown(f"<small>{label}</small>", unsafe_allow_html=True)
+                if col_del.button("✕", key=f"del_{i}", help="Remover"):
+                    st.session_state.zonas.pop(i)
+                    st.rerun()
+
+        if st.session_state.zonas:
+            if st.button("🗑 Limpar tudo", use_container_width=True):
+                st.session_state.zonas = []
+                st.rerun()
+
+    # ── Plotly floor plan
+    with planta:
+        st.markdown("#### 🏗 Planta Baixa — Interativa")
+
+        LW = float(st.session_state.lw)
+        LH = float(st.session_state.lh)
+
+        fig_d = go.Figure()
+
+        # Contorno do imóvel
+        fig_d.add_shape(type="rect", x0=0, y0=0, x1=LW, y1=LH,
+            fillcolor="#f8fafc", line=dict(color="#1e293b", width=3))
+
+        # Grades de referência (metro a metro)
+        for xi in [i*0.5 for i in range(int(LW/0.5)+1)]:
+            fig_d.add_shape(type="line", x0=xi, y0=0, x1=xi, y1=LH,
+                line=dict(color="#e2e8f0", width=0.5 if xi % 1 else 1, dash="dot"))
+        for yi in [i*0.5 for i in range(int(LH/0.5)+1)]:
+            fig_d.add_shape(type="line", x0=0, y0=yi, x1=LW, y1=yi,
+                line=dict(color="#e2e8f0", width=0.5 if yi % 1 else 1, dash="dot"))
+
+        # Cotas
+        for xi in range(int(LW)+1):
+            fig_d.add_annotation(x=xi, y=-0.35, text=f"{xi}m",
+                showarrow=False, font=dict(size=9, color="#64748b"))
+        for yi in range(int(LH)+1):
+            fig_d.add_annotation(x=-0.35, y=yi, text=f"{yi}m",
+                showarrow=False, font=dict(size=9, color="#64748b"))
+
+        # Zonas
+        for z in st.session_state.zonas:
+            cfg  = TIPOS_ZONA.get(z["tipo"], TIPOS_ZONA["Outro"])
+            area_z = (z["x1"]-z["x0"]) * (z["y1"]-z["y0"])
+            cx   = (z["x0"]+z["x1"])/2
+            cy   = (z["y0"]+z["y1"])/2
+            larg = z["x1"]-z["x0"]
+            prof = z["y1"]-z["y0"]
+
+            fig_d.add_shape(type="rect",
+                x0=z["x0"], y0=z["y0"], x1=z["x1"], y1=z["y1"],
+                fillcolor=cfg["cor"],
+                line=dict(color=cfg["borda"], width=2),
+                opacity=0.90)
+
+            # Rótulo principal
+            fig_d.add_annotation(x=cx, y=cy + 0.12,
+                text=f"<b>{z['nome']}</b>",
+                showarrow=False, font=dict(size=10), align="center",
+                bgcolor="rgba(255,255,255,0.7)", borderpad=2)
+            # Dimensões
+            fig_d.add_annotation(x=cx, y=cy - 0.18,
+                text=f"{larg:.1f}m × {prof:.1f}m = {area_z:.1f} m²",
+                showarrow=False, font=dict(size=8, color="#555"), align="center")
+
+        # Área usada vs total
+        area_usada = sum((z["x1"]-z["x0"])*(z["y1"]-z["y0"])
+                         for z in st.session_state.zonas)
+        pct = area_usada / area_total * 100 if area_total else 0
+
+        fig_d.update_layout(
+            height=560,
+            plot_bgcolor="white", paper_bgcolor="white",
+            showlegend=False,
+            margin=dict(l=40, r=20, t=40, b=40),
+            title=dict(
+                text=f"Área total: {area_total:.0f} m²  |  Zonas mapeadas: {area_usada:.1f} m² ({pct:.0f}%)  |  Livre: {area_total-area_usada:.1f} m²",
+                font=dict(size=12, color="#475569"), x=0.5,
+            ),
+            xaxis=dict(range=[-0.6, LW+0.3], showgrid=False, zeroline=False,
+                       showticklabels=False, fixedrange=True),
+            yaxis=dict(range=[-0.6, LH+0.4], showgrid=False, zeroline=False,
+                       showticklabels=False, scaleanchor="x", fixedrange=True),
+        )
+        st.plotly_chart(fig_d, use_container_width=True)
+
+        # Legenda de tipos
+        st.markdown("**Legenda de tipos:**")
+        leg_cols = st.columns(5)
+        for i, (tipo, cfg) in enumerate(TIPOS_ZONA.items()):
+            leg_cols[i % 5].markdown(
+                f"<span style='background:{cfg['cor']};border:1px solid {cfg['borda']};"
+                f"padding:2px 8px;border-radius:4px;font-size:11px'>"
+                f"{cfg['icone']} {tipo}</span>",
+                unsafe_allow_html=True)
+
+        # Tabela resumo
+        if st.session_state.zonas:
+            st.markdown("**Resumo das zonas:**")
+            rows_z = []
+            for z in st.session_state.zonas:
+                a = (z["x1"]-z["x0"])*(z["y1"]-z["y0"])
+                rows_z.append({
+                    "Zona": z["nome"],
+                    "Tipo": z["tipo"],
+                    "Posição": f"({z['x0']},{z['y0']}) → ({z['x1']},{z['y1']})",
+                    "Larg × Prof": f"{z['x1']-z['x0']:.1f}m × {z['y1']-z['y0']:.1f}m",
+                    "Área (m²)": f"{a:.1f}",
+                })
+            st.dataframe(pd.DataFrame(rows_z), use_container_width=True, hide_index=True)
+
 st.divider()
-st.caption("📦 PUDO Vila Carrão — Plano de Negócio v3.0 | Dashboard Executivo · Financeiro · DRE · Plano SEBRAE")
+st.caption("📦 PUDO Vila Carrão — Plano de Negócio v4.0 | Dashboard · Financeiro · DRE · Plano · Desenho")
