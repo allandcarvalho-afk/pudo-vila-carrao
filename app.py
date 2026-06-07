@@ -198,12 +198,13 @@ st.markdown(f"""
 # ══════════════════════════════════════════════════════════════
 # TABS PRINCIPAIS
 # ══════════════════════════════════════════════════════════════
-t_dash, t_fin, t_cont, t_plano, t_draw = st.tabs([
+t_dash, t_fin, t_cont, t_plano, t_draw, t_ctrl = st.tabs([
     "🎯  Dashboard Executivo",
     "💰  Financeiro",
     "📊  Contabilidade (DRE)",
     "📋  Plano de Negócio",
     "✏️  Desenho da Estrutura",
+    "📅  Controle Mensal",
 ])
 
 # ════════════════════════════════════════════════
@@ -1178,5 +1179,579 @@ with t_draw:
             df_z = pd.DataFrame(rows_z)
             st.dataframe(df_z, use_container_width=True, hide_index=True)
 
+# ════════════════════════════════════════════════
+# TAB 6 — CONTROLE MENSAL
+# ════════════════════════════════════════════════
+with t_ctrl:
+    import json, io
+
+    MESES_BR = ["Jan","Fev","Mar","Abr","Mai","Jun",
+                "Jul","Ago","Set","Out","Nov","Dez"]
+
+    if "dados_mensais" not in st.session_state:
+        st.session_state.dados_mensais = {}
+
+    # ── helpers
+    def chave_mes(m, a): return f"{m}/{a}"
+    def calcular(d):
+        rec_log  = d.get("rec_pudo",0) + d.get("rec_reversa",0) + d.get("rec_full",0)
+        rec_prod = d.get("rec_produto",0)
+        rec_tot  = rec_log + rec_prod
+        cmv      = d.get("cmv",0)
+        imp      = d.get("impostos",0)
+        desp_fix = (d.get("desp_aluguel",0) + d.get("desp_pessoal",0) +
+                    d.get("desp_marketing",0) + d.get("desp_outras",0))
+        lucro_br = rec_tot - cmv
+        ebitda   = rec_tot - cmv - imp - desp_fix
+        lucro_liq= ebitda - d.get("depreciacao",0)
+        mg_br    = lucro_br / rec_tot * 100 if rec_tot else 0
+        mg_eb    = ebitda   / rec_tot * 100 if rec_tot else 0
+        mg_lq    = lucro_liq/ rec_tot * 100 if rec_tot else 0
+        return dict(rec_log=rec_log, rec_prod=rec_prod, rec_tot=rec_tot,
+                    cmv=cmv, imp=imp, desp_fix=desp_fix,
+                    lucro_br=lucro_br, ebitda=ebitda, lucro_liq=lucro_liq,
+                    mg_br=mg_br, mg_eb=mg_eb, mg_lq=mg_lq)
+
+    def semaforo(real, meta, inverso=False):
+        if meta == 0: return "⚪"
+        pct = real / meta
+        if inverso:
+            if pct <= 1.0: return "🟢"
+            if pct <= 1.1: return "🟡"
+            return "🔴"
+        if pct >= 1.0: return "🟢"
+        if pct >= 0.9: return "🟡"
+        return "🔴"
+
+    def fmt(v): return f"R$ {v:,.0f}".replace(",",".")
+    def fmtp(v): return f"{v:.1f}%"
+
+    # ── Layout
+    col_form, col_main = st.columns([1, 2.6])
+
+    with col_form:
+        st.markdown("#### 📝 Lançamento Mensal")
+
+        ano_sel = st.number_input("Ano", 2024, 2030, 2025, key="ctrl_ano")
+        mes_sel = st.selectbox("Mês", MESES_BR, key="ctrl_mes")
+        chave   = chave_mes(mes_sel, ano_sel)
+
+        # Carrega dados existentes ou default
+        d0 = st.session_state.dados_mensais.get(chave, {})
+
+        st.markdown("**📦 Receitas PUDO / Logística**")
+        r_pudo  = st.number_input("Comissão PUDO (R$)",       0.0,999999.,float(d0.get("rec_pudo",0)),    50., key="r1")
+        r_rev   = st.number_input("Logística Reversa (R$)",   0.0,999999.,float(d0.get("rec_reversa",0)), 50., key="r2")
+        r_full  = st.number_input("Fulfilment (R$)",           0.0,999999.,float(d0.get("rec_full",0)),    50., key="r3")
+
+        st.markdown(f"**{segmento_label} — Receitas**")
+        r_prod  = st.number_input("Receita c/ produto (margem bruta, R$)", 0.0,999999.,float(d0.get("rec_produto",0)), 50., key="r4")
+        cmv_r   = st.number_input("CMV — Custo Mercadoria (R$)",           0.0,999999.,float(d0.get("cmv",0)),         50., key="r5")
+
+        st.markdown("**💸 Despesas Reais do Mês**")
+        d_alug  = st.number_input("Aluguel + Cond (R$)",    0.0,99999.,float(d0.get("desp_aluguel",   aluguel+condominio)), 50., key="d1")
+        d_pess  = st.number_input("Pessoal + Encargos (R$)",0.0,99999.,float(d0.get("desp_pessoal",   salarios+enc_val)),   50., key="d2")
+        d_mkt   = st.number_input("Marketing / ADS (R$)",   0.0,99999.,float(d0.get("desp_marketing", mkt_mensal)),         50., key="d3")
+        d_out   = st.number_input("Outras despesas (R$)",   0.0,99999.,float(d0.get("desp_outras",
+            energia+internet+contador+sistema_erp+embalagens+seguros+taxas_banco)), 50., key="d4")
+        imp_r   = st.number_input("Impostos pagos (R$)",    0.0,99999.,float(d0.get("impostos",0)),      50., key="d5")
+        dep_r   = st.number_input("Depreciação (R$)",       0.0,99999.,float(d0.get("depreciacao",depreciacao)), 50., key="d6")
+        obs_r   = st.text_area("Observações do mês", d0.get("obs",""), height=70, key="obs_r")
+
+        if st.button("💾 Salvar mês", use_container_width=True, type="primary"):
+            st.session_state.dados_mensais[chave] = {
+                "rec_pudo": r_pudo, "rec_reversa": r_rev, "rec_full": r_full,
+                "rec_produto": r_prod, "cmv": cmv_r,
+                "desp_aluguel": d_alug, "desp_pessoal": d_pess,
+                "desp_marketing": d_mkt, "desp_outras": d_out,
+                "impostos": imp_r, "depreciacao": dep_r, "obs": obs_r,
+            }
+            st.success(f"✅ {chave} salvo!")
+
+        st.divider()
+
+        # Export / Import
+        st.markdown("**📤 Exportar / Importar dados**")
+        if st.session_state.dados_mensais:
+            json_str = json.dumps(st.session_state.dados_mensais, ensure_ascii=False, indent=2)
+            st.download_button("⬇ Baixar JSON", json_str,
+                file_name="controle_mensal_pudo.json", mime="application/json",
+                use_container_width=True)
+
+        up = st.file_uploader("⬆ Carregar JSON salvo", type="json", key="up_json")
+        if up:
+            try:
+                loaded = json.load(up)
+                st.session_state.dados_mensais.update(loaded)
+                st.success(f"Importados {len(loaded)} meses!")
+                st.rerun()
+            except Exception:
+                st.error("Arquivo inválido.")
+
+    # ── Painel principal
+    with col_main:
+        dados_todos = st.session_state.dados_mensais
+
+        if not dados_todos:
+            st.info("👈 Salve pelo menos um mês para visualizar os dados.")
+            st.stop()
+
+        # Ordena meses
+        def sort_key(k):
+            m, a = k.split("/")
+            return int(a)*100 + MESES_BR.index(m)
+
+        chaves_ord = sorted(dados_todos.keys(), key=sort_key)
+        idx_atual  = chaves_ord.index(chave) if chave in chaves_ord else len(chaves_ord)-1
+        chave_vis  = st.selectbox("Visualizar mês", chaves_ord,
+                                   index=idx_atual, key="vis_mes")
+        d_cur  = dados_todos[chave_vis]
+        calc   = calcular(d_cur)
+
+        # Mês anterior
+        idx_v  = chaves_ord.index(chave_vis)
+        d_ant  = calcular(dados_todos[chaves_ord[idx_v-1]]) if idx_v > 0 else None
+        chave_ant = chaves_ord[idx_v-1] if idx_v > 0 else "—"
+
+        # Projeção (mês 6 do simulador como meta)
+        meta_rec  = rec_total_m6
+        meta_ebit = ebitda_m6
+        meta_liq  = lucro_m6
+
+        # ── SUBTABS
+        sd1, sd2, sd3, sd4 = st.tabs([
+            "🎯 Fechamento do Mês",
+            "📊 DRE Comparativo",
+            "📈 Evolução Mensal",
+            "🔍 PUDO vs Produto",
+        ])
+
+        # ════════ SUBTAB 1 — Fechamento ════════
+        with sd1:
+            st.markdown(f"### Fechamento — {chave_vis}")
+
+            # KPIs linha 1
+            k1,k2,k3 = st.columns(3)
+            def kpi_m(col, label, val, ref=None, inv=False, cls=""):
+                delta = f" vs {fmt(ref)}" if ref else ""
+                smf   = semaforo(val, ref, inv) if ref else ""
+                col.markdown(f"""
+                <div class="hero-card {cls}">
+                  <div class="hero-lbl">{label}</div>
+                  <div class="hero-val">{fmt(val)}</div>
+                  <div class="hero-sub">{smf} {delta}</div>
+                </div>""", unsafe_allow_html=True)
+
+            kpi_m(k1,"Receita Total",       calc["rec_tot"],  meta_rec,  cls="")
+            kpi_m(k2,"EBITDA",              calc["ebitda"],   meta_ebit, cls="green" if calc["ebitda"]>0 else "red")
+            kpi_m(k3,"Lucro Líquido",       calc["lucro_liq"],meta_liq,  cls="green" if calc["lucro_liq"]>0 else "red")
+            st.markdown("<div style='margin:8px 0'></div>", unsafe_allow_html=True)
+            k4,k5,k6 = st.columns(3)
+            kpi_m(k4,"Receita PUDO/Log",    calc["rec_log"],  rec_log_base)
+            kpi_m(k5,"Receita Produto",     calc["rec_prod"], rec_prod_m6)
+            ant_liq = d_ant["lucro_liq"] if d_ant else None
+            kpi_m(k6,"vs Mês Anterior",
+                calc["lucro_liq"] - ant_liq if ant_liq is not None else 0,
+                cls="green" if (ant_liq is not None and calc["lucro_liq"]>=ant_liq) else "red")
+
+            st.markdown("<br>", unsafe_allow_html=True)
+            cg1, cg2 = st.columns(2)
+
+            # Waterfall simplificado (barras)
+            with cg1:
+                st.markdown('<div class="section-title">Decomposição do Resultado</div>',
+                            unsafe_allow_html=True)
+                items_wf = {
+                    "Rec PUDO":     calc["rec_log"],
+                    f"Rec {segmento_label.split()[-1]}": calc["rec_prod"],
+                    "Impostos":    -calc["imp"],
+                    "CMV":         -calc["cmv"],
+                    "Desp Fixas":  -calc["desp_fix"],
+                    "Depreciação": -d_cur.get("depreciacao",0),
+                    "Lucro Líq":    calc["lucro_liq"],
+                }
+                cores_wf2 = ["#2563eb","#7c3aed","#ef4444","#ef4444","#ef4444","#f97316",
+                             "#16a34a" if calc["lucro_liq"]>=0 else "#dc2626"]
+                fig_wf2 = go.Figure(go.Bar(
+                    x=list(items_wf.values()), y=list(items_wf.keys()),
+                    orientation="h", marker_color=cores_wf2,
+                    text=[fmt(abs(v)) for v in items_wf.values()],
+                    textposition="outside", cliponaxis=False))
+                fig_wf2.add_vline(x=0, line_color="#666", line_width=1.5)
+                fig_wf2.update_layout(height=290, plot_bgcolor="white", paper_bgcolor="white",
+                    showlegend=False, margin=dict(l=0,r=110,t=10,b=0),
+                    xaxis=dict(gridcolor="#f0f0f0", zeroline=False),
+                    yaxis=dict(autorange="reversed"))
+                st.plotly_chart(fig_wf2, use_container_width=True)
+
+            with cg2:
+                st.markdown('<div class="section-title">Distribuição da Receita</div>',
+                            unsafe_allow_html=True)
+                lbs = ["PUDO","Log. Rev.","Fulfilment","Produto"]
+                vls = [d_cur.get("rec_pudo",0), d_cur.get("rec_reversa",0),
+                       d_cur.get("rec_full",0), d_cur.get("rec_produto",0)]
+                fig_pie2 = go.Figure(go.Pie(labels=lbs, values=vls, hole=.45,
+                    marker_colors=["#2563eb","#7c3aed","#0d9488",
+                                   "#16a34a" if is_pesca else "#be185d"],
+                    textinfo="percent+label", textfont_size=10))
+                fig_pie2.update_layout(height=250, showlegend=False,
+                    paper_bgcolor="white", margin=dict(l=0,r=0,t=0,b=0))
+                st.plotly_chart(fig_pie2, use_container_width=True)
+
+                if d_cur.get("obs"):
+                    st.info(f"📝 **Obs:** {d_cur['obs']}")
+
+            # Semáforos vs meta
+            st.markdown('<div class="section-title">Semáforo de Desempenho vs Meta</div>',
+                        unsafe_allow_html=True)
+            metricas_sem = [
+                ("Receita Total",   calc["rec_tot"],   meta_rec,   False),
+                ("PUDO / Logística",calc["rec_log"],   rec_log_base,False),
+                ("Receita Produto", calc["rec_prod"],  rec_prod_m6, False),
+                ("EBITDA",          calc["ebitda"],    meta_ebit,   False),
+                ("Lucro Líquido",   calc["lucro_liq"], meta_liq,    False),
+                ("Custo Total",     calc["desp_fix"]+calc["cmv"]+calc["imp"],
+                                    opex_fixo+cmv_prod_m6+imp_m6, True),
+            ]
+            cols_sem = st.columns(6)
+            for ci, (lbl, real, meta_v, inv) in enumerate(metricas_sem):
+                smf = semaforo(real, meta_v, inv)
+                pct = real/meta_v*100 if meta_v else 0
+                cols_sem[ci].markdown(f"""
+                <div style="background:white;border-radius:10px;padding:12px;
+                     text-align:center;box-shadow:0 1px 4px rgba(0,0,0,.06)">
+                  <div style="font-size:22px">{smf}</div>
+                  <div style="font-size:10px;color:#666;margin:4px 0">{lbl}</div>
+                  <div style="font-size:13px;font-weight:600">{fmt(real)}</div>
+                  <div style="font-size:10px;color:#888">Meta: {fmt(meta_v)}</div>
+                  <div style="font-size:10px;color:{'#16a34a' if pct>=90 else '#dc2626'}">{pct:.0f}%</div>
+                </div>""", unsafe_allow_html=True)
+
+        # ════════ SUBTAB 2 — DRE Comparativo ════════
+        with sd2:
+            st.markdown(f"### DRE — {chave_vis}  vs  {chave_ant}  vs  Meta (Simulador)")
+
+            # Monta DRE completa
+            dre_linhas = [
+                ("RECEITA BRUTA TOTAL",            True,  False, "total"),
+                ("  Comissão PUDO",                 False, False, "pos"),
+                ("  Logística Reversa",             False, False, "pos"),
+                ("  Fulfilment",                    False, False, "pos"),
+                (f"  Vendas {segmento_label}",      False, False, "pos"),
+                ("(−) Impostos",                   False, True,  "neg"),
+                ("RECEITA LÍQUIDA",                True,  False, "total"),
+                ("(−) CMV",                        False, True,  "neg"),
+                ("LUCRO BRUTO",                    True,  False, "total"),
+                ("(−) Despesas Operacionais",      False, True,  "neg"),
+                ("  Aluguel + Condomínio",          False, True,  "neg"),
+                ("  Pessoal + Encargos",            False, True,  "neg"),
+                ("  Marketing / ADS",               False, True,  "neg"),
+                ("  Outras Despesas",               False, True,  "neg"),
+                ("EBITDA",                         True,  False, "result"),
+                ("(−) Depreciação",                False, True,  "neg"),
+                ("LUCRO LÍQUIDO",                  True,  False, "result"),
+                ("Margem Bruta %",                 False, False, "pct"),
+                ("Margem EBITDA %",                False, False, "pct"),
+                ("Margem Líquida %",               False, False, "pct"),
+            ]
+
+            def val_dre(label, d):
+                if not d: return 0
+                c = calcular(d)
+                m = {
+                    "RECEITA BRUTA TOTAL":         c["rec_tot"],
+                    "  Comissão PUDO":              d.get("rec_pudo",0),
+                    "  Logística Reversa":          d.get("rec_reversa",0),
+                    "  Fulfilment":                 d.get("rec_full",0),
+                    f"  Vendas {segmento_label}":   d.get("rec_produto",0),
+                    "(−) Impostos":                -d.get("impostos",0),
+                    "RECEITA LÍQUIDA":              c["rec_tot"]-c["imp"],
+                    "(−) CMV":                     -c["cmv"],
+                    "LUCRO BRUTO":                  c["lucro_br"],
+                    "(−) Despesas Operacionais":   -c["desp_fix"],
+                    "  Aluguel + Condomínio":      -d.get("desp_aluguel",0),
+                    "  Pessoal + Encargos":        -d.get("desp_pessoal",0),
+                    "  Marketing / ADS":           -d.get("desp_marketing",0),
+                    "  Outras Despesas":           -d.get("desp_outras",0),
+                    "EBITDA":                       c["ebitda"],
+                    "(−) Depreciação":             -d.get("depreciacao",0),
+                    "LUCRO LÍQUIDO":                c["lucro_liq"],
+                    "Margem Bruta %":               c["mg_br"],
+                    "Margem EBITDA %":              c["mg_eb"],
+                    "Margem Líquida %":             c["mg_lq"],
+                }
+                return m.get(label, 0)
+
+            def val_meta(label):
+                m = {
+                    "RECEITA BRUTA TOTAL":         rec_total_m6,
+                    "  Comissão PUDO":              rec_pudo_m,
+                    "  Logística Reversa":          rec_rev_m,
+                    "  Fulfilment":                 rec_full_m,
+                    f"  Vendas {segmento_label}":   rec_prod_m6,
+                    "(−) Impostos":                -imp_m6,
+                    "RECEITA LÍQUIDA":              rec_total_m6-imp_m6,
+                    "(−) CMV":                     -cmv_prod_m6,
+                    "LUCRO BRUTO":                  rec_total_m6-cmv_prod_m6,
+                    "(−) Despesas Operacionais":   -opex_fixo,
+                    "  Aluguel + Condomínio":      -(aluguel+condominio),
+                    "  Pessoal + Encargos":        -(salarios+enc_val),
+                    "  Marketing / ADS":           -mkt_mensal,
+                    "  Outras Despesas":           -(energia+internet+contador+sistema_erp+embalagens+seguros+taxas_banco),
+                    "EBITDA":                       ebitda_m6,
+                    "(−) Depreciação":             -depreciacao,
+                    "LUCRO LÍQUIDO":                lucro_m6,
+                    "Margem Bruta %":               (rec_total_m6-cmv_prod_m6)/rec_total_m6*100 if rec_total_m6 else 0,
+                    "Margem EBITDA %":              ebitda_m6/rec_total_m6*100 if rec_total_m6 else 0,
+                    "Margem Líquida %":             lucro_m6/rec_total_m6*100 if rec_total_m6 else 0,
+                }
+                return m.get(label, 0)
+
+            rows_dre = []
+            for lbl, bold, neg, tipo in dre_linhas:
+                v_cur = val_dre(lbl, d_cur)
+                v_ant = val_dre(lbl, dados_todos.get(chave_ant)) if chave_ant != "—" else None
+                v_met = val_meta(lbl)
+                if tipo == "pct":
+                    rows_dre.append({
+                        "Item": lbl,
+                        chave_vis: f"{v_cur:.1f}%",
+                        chave_ant: f"{v_ant:.1f}%" if v_ant is not None else "—",
+                        "Meta": f"{v_met:.1f}%",
+                        "∆ Meta": f"{v_cur-v_met:+.1f}pp",
+                    })
+                else:
+                    rows_dre.append({
+                        "Item": lbl,
+                        chave_vis: fmt(v_cur),
+                        chave_ant: fmt(v_ant) if v_ant is not None else "—",
+                        "Meta": fmt(v_met),
+                        "∆ Meta": f"R$ {v_cur-v_met:+,.0f}".replace(",","."),
+                    })
+
+            df_dre2 = pd.DataFrame(rows_dre)
+
+            BOLD_ROWS = {"RECEITA BRUTA TOTAL","RECEITA LÍQUIDA","LUCRO BRUTO","EBITDA","LUCRO LÍQUIDO"}
+
+            def estilo_dre(row):
+                styles = [""] * len(row)
+                lbl = row["Item"]
+                if lbl in BOLD_ROWS:
+                    styles = ["font-weight:700;background:#f0f4ff"] * len(row)
+                try:
+                    delta_str = row.get("∆ Meta","0").replace("R$ ","").replace(".","").replace(",",".")
+                    dv = float(delta_str.replace("+",""))
+                    col_idx = list(row.index).index("∆ Meta")
+                    styles[col_idx] = f"color:{'#16a34a' if dv>=0 else '#dc2626'};font-weight:600"
+                except: pass
+                return styles
+
+            st.dataframe(
+                df_dre2.style.apply(estilo_dre, axis=1),
+                use_container_width=True, hide_index=True)
+
+            # Gráfico comparativo EBITDA / Lucro
+            st.markdown('<div class="section-title">EBITDA e Lucro — Comparativo</div>',
+                        unsafe_allow_html=True)
+            cats_comp  = [chave_ant, chave_vis, "Meta"]
+            ebitdas    = [
+                calcular(dados_todos[chave_ant])["ebitda"] if chave_ant!="—" and chave_ant in dados_todos else 0,
+                calc["ebitda"], meta_ebit
+            ]
+            lucros     = [
+                calcular(dados_todos[chave_ant])["lucro_liq"] if chave_ant!="—" and chave_ant in dados_todos else 0,
+                calc["lucro_liq"], meta_liq
+            ]
+            fig_comp = go.Figure()
+            fig_comp.add_trace(go.Bar(x=cats_comp, y=ebitdas, name="EBITDA",
+                marker_color=["#93c5fd","#2563eb","#7c3aed"]))
+            fig_comp.add_trace(go.Bar(x=cats_comp, y=lucros, name="Lucro Líquido",
+                marker_color=["#86efac","#16a34a","#059669"]))
+            fig_comp.add_hline(y=0, line_dash="dot", line_color="#666")
+            fig_comp.update_layout(barmode="group", height=260,
+                plot_bgcolor="white", paper_bgcolor="white",
+                legend=dict(orientation="h", y=-0.25),
+                margin=dict(l=0,r=0,t=10,b=0))
+            fig_comp.update_yaxes(gridcolor="#f0f0f0")
+            st.plotly_chart(fig_comp, use_container_width=True)
+
+        # ════════ SUBTAB 3 — Evolução Mensal ════════
+        with sd3:
+            st.markdown("### Evolução Mensal — Todos os Meses Lançados")
+
+            if len(dados_todos) < 2:
+                st.info("Lance pelo menos 2 meses para ver a evolução.")
+            else:
+                ev_meses, ev_rec, ev_ebitda, ev_liq, ev_pudo, ev_prod = [],[],[],[],[],[]
+                for ch in chaves_ord:
+                    d = dados_todos[ch]
+                    c = calcular(d)
+                    ev_meses.append(ch)
+                    ev_rec.append(c["rec_tot"])
+                    ev_ebitda.append(c["ebitda"])
+                    ev_liq.append(c["lucro_liq"])
+                    ev_pudo.append(c["rec_log"])
+                    ev_prod.append(c["rec_prod"])
+
+                fig_ev = make_subplots(rows=2, cols=1, shared_xaxes=True,
+                    subplot_titles=("Receita e Resultado", "Composição da Receita"),
+                    vertical_spacing=0.12)
+
+                fig_ev.add_trace(go.Bar(x=ev_meses, y=ev_rec, name="Receita Total",
+                    marker_color="#2563eb", opacity=.8), row=1, col=1)
+                fig_ev.add_trace(go.Scatter(x=ev_meses, y=ev_ebitda, name="EBITDA",
+                    line=dict(color="#7c3aed",width=2.5), mode="lines+markers"), row=1, col=1)
+                fig_ev.add_trace(go.Scatter(x=ev_meses, y=ev_liq, name="Lucro Líquido",
+                    line=dict(color="#16a34a",width=2.5), mode="lines+markers"), row=1, col=1)
+                fig_ev.add_hline(y=meta_liq, line_dash="dash", line_color="#dc2626",
+                    annotation_text=f"Meta lucro {fmt(meta_liq)}", row=1, col=1)
+
+                fig_ev.add_trace(go.Bar(x=ev_meses, y=ev_pudo, name="PUDO/Log",
+                    marker_color="#2563eb"), row=2, col=1)
+                fig_ev.add_trace(go.Bar(x=ev_meses, y=ev_prod, name="Produto",
+                    marker_color="#16a34a" if is_pesca else "#be185d"), row=2, col=1)
+
+                fig_ev.update_layout(barmode="stack", height=520,
+                    plot_bgcolor="white", paper_bgcolor="white",
+                    legend=dict(orientation="h", y=-0.08),
+                    margin=dict(l=0,r=0,t=30,b=0))
+                fig_ev.update_yaxes(gridcolor="#f0f0f0")
+                st.plotly_chart(fig_ev, use_container_width=True)
+
+                # Tabela resumo
+                st.markdown('<div class="section-title">Resumo Acumulado do Período</div>',
+                            unsafe_allow_html=True)
+                rows_ev = []
+                for ch in chaves_ord:
+                    d = dados_todos[ch]
+                    c = calcular(d)
+                    vs_meta_liq = c["lucro_liq"] - meta_liq
+                    rows_ev.append({
+                        "Mês": ch,
+                        "Receita": fmt(c["rec_tot"]),
+                        "PUDO/Log": fmt(c["rec_log"]),
+                        "Produto": fmt(c["rec_prod"]),
+                        "EBITDA": fmt(c["ebitda"]),
+                        "Lucro Líq": fmt(c["lucro_liq"]),
+                        "Mg Líq%": fmtp(c["mg_lq"]),
+                        "∆ vs Meta": fmt(vs_meta_liq),
+                    })
+                # totais
+                rows_ev.append({
+                    "Mês": "TOTAL",
+                    "Receita": fmt(sum(calcular(dados_todos[c])["rec_tot"] for c in chaves_ord)),
+                    "PUDO/Log": fmt(sum(calcular(dados_todos[c])["rec_log"] for c in chaves_ord)),
+                    "Produto":  fmt(sum(calcular(dados_todos[c])["rec_prod"] for c in chaves_ord)),
+                    "EBITDA":   fmt(sum(calcular(dados_todos[c])["ebitda"] for c in chaves_ord)),
+                    "Lucro Líq":fmt(sum(calcular(dados_todos[c])["lucro_liq"] for c in chaves_ord)),
+                    "Mg Líq%":  "—",
+                    "∆ vs Meta":fmt(sum(calcular(dados_todos[c])["lucro_liq"]-meta_liq for c in chaves_ord)),
+                })
+
+                def cor_ev(val):
+                    try:
+                        v = float(val.replace("R$ ","").replace(".","").replace(",",".").replace("+",""))
+                        if v > 0: return "color:#16a34a;font-weight:600"
+                        if v < 0: return "color:#dc2626"
+                    except: pass
+                    return ""
+
+                df_ev = pd.DataFrame(rows_ev)
+                st.dataframe(df_ev.style.map(cor_ev, subset=["Lucro Líq","∆ vs Meta"]),
+                             use_container_width=True, hide_index=True)
+
+        # ════════ SUBTAB 4 — PUDO vs Produto ════════
+        with sd4:
+            st.markdown(f"### PUDO vs {segmento_label} — Análise Detalhada")
+
+            if len(dados_todos) == 0:
+                st.info("Lance pelo menos 1 mês.")
+            else:
+                # Radar chart de performance
+                c_cur = calcular(d_cur)
+                pudo_pct  = c_cur["rec_log"] / c_cur["rec_tot"] * 100 if c_cur["rec_tot"] else 0
+                prod_pct  = c_cur["rec_prod"]/ c_cur["rec_tot"] * 100 if c_cur["rec_tot"] else 0
+
+                col_pu, col_pr = st.columns(2)
+
+                with col_pu:
+                    st.markdown(f"""
+                    <div style="background:#eff6ff;border:2px solid #2563eb;border-radius:12px;padding:20px">
+                      <div style="font-size:13px;font-weight:700;color:#1d4ed8;margin-bottom:12px">
+                        📦 PUDO + LOGÍSTICA — {chave_vis}</div>
+                      <table style="width:100%;font-size:13px">
+                        <tr><td style="color:#555">Comissão PUDO</td>
+                            <td style="font-weight:600;text-align:right">{fmt(d_cur.get("rec_pudo",0))}</td></tr>
+                        <tr><td style="color:#555">Logística Reversa</td>
+                            <td style="font-weight:600;text-align:right">{fmt(d_cur.get("rec_reversa",0))}</td></tr>
+                        <tr><td style="color:#555">Fulfilment</td>
+                            <td style="font-weight:600;text-align:right">{fmt(d_cur.get("rec_full",0))}</td></tr>
+                        <tr style="border-top:1px solid #bfdbfe">
+                            <td style="font-weight:700">Total PUDO</td>
+                            <td style="font-weight:700;text-align:right;color:#1d4ed8">{fmt(c_cur["rec_log"])}</td></tr>
+                        <tr><td style="color:#888;font-size:11px">% da receita total</td>
+                            <td style="color:#1d4ed8;font-size:11px;text-align:right">{pudo_pct:.1f}%</td></tr>
+                        <tr><td style="color:#888;font-size:11px">Margem bruta</td>
+                            <td style="color:#1d4ed8;font-size:11px;text-align:right">100% (serviço)</td></tr>
+                        <tr><td style="color:#888;font-size:11px">Meta PUDO</td>
+                            <td style="color:#888;font-size:11px;text-align:right">{fmt(rec_log_base)}</td></tr>
+                        <tr><td style="font-size:11px">∆ vs Meta</td>
+                            <td style="font-size:11px;text-align:right;color:{'#16a34a' if c_cur['rec_log']>=rec_log_base else '#dc2626'}">{fmt(c_cur['rec_log']-rec_log_base)}</td></tr>
+                      </table>
+                    </div>""", unsafe_allow_html=True)
+
+                with col_pr:
+                    cor_prod_hex = "#f0fdf4" if is_pesca else "#fdf2f8"
+                    cor_bd_hex  = "#16a34a" if is_pesca else "#be185d"
+                    cor_txt_hex = "#15803d" if is_pesca else "#9d174d"
+                    st.markdown(f"""
+                    <div style="background:{cor_prod_hex};border:2px solid {cor_bd_hex};border-radius:12px;padding:20px">
+                      <div style="font-size:13px;font-weight:700;color:{cor_txt_hex};margin-bottom:12px">
+                        {segmento_label} — {chave_vis}</div>
+                      <table style="width:100%;font-size:13px">
+                        <tr><td style="color:#555">GMV (vendas brutas)</td>
+                            <td style="font-weight:600;text-align:right">{fmt(d_cur.get("rec_produto",0)+d_cur.get("cmv",0))}</td></tr>
+                        <tr><td style="color:#555">CMV (custo produto)</td>
+                            <td style="font-weight:600;text-align:right;color:#dc2626">({fmt(d_cur.get("cmv",0))})</td></tr>
+                        <tr style="border-top:1px solid {cor_bd_hex}20">
+                            <td style="font-weight:700">Margem Produto</td>
+                            <td style="font-weight:700;text-align:right;color:{cor_txt_hex}">{fmt(d_cur.get("rec_produto",0))}</td></tr>
+                        <tr><td style="color:#888;font-size:11px">% da receita total</td>
+                            <td style="color:{cor_txt_hex};font-size:11px;text-align:right">{prod_pct:.1f}%</td></tr>
+                        <tr><td style="color:#888;font-size:11px">Margem bruta %</td>
+                            <td style="color:{cor_txt_hex};font-size:11px;text-align:right">
+                            {d_cur.get("rec_produto",0)/(d_cur.get("rec_produto",0)+d_cur.get("cmv",1))*100:.1f}%</td></tr>
+                        <tr><td style="color:#888;font-size:11px">Meta Produto</td>
+                            <td style="color:#888;font-size:11px;text-align:right">{fmt(rec_prod_m6)}</td></tr>
+                        <tr><td style="font-size:11px">∆ vs Meta</td>
+                            <td style="font-size:11px;text-align:right;color:{'#16a34a' if c_cur['rec_prod']>=rec_prod_m6 else '#dc2626'}">{fmt(c_cur['rec_prod']-rec_prod_m6)}</td></tr>
+                      </table>
+                    </div>""", unsafe_allow_html=True)
+
+                # Evolução PUDO vs Produto ao longo dos meses
+                if len(dados_todos) >= 2:
+                    st.markdown("<br>", unsafe_allow_html=True)
+                    st.markdown('<div class="section-title">Evolução PUDO vs Produto — Todos os Meses</div>',
+                                unsafe_allow_html=True)
+                    fig_pvp = go.Figure()
+                    meses_p = chaves_ord
+                    pudos   = [calcular(dados_todos[c])["rec_log"]  for c in meses_p]
+                    prods   = [calcular(dados_todos[c])["rec_prod"] for c in meses_p]
+                    lucros2 = [calcular(dados_todos[c])["lucro_liq"]for c in meses_p]
+
+                    fig_pvp.add_trace(go.Bar(x=meses_p, y=pudos, name="PUDO/Log",
+                        marker_color="#2563eb"))
+                    fig_pvp.add_trace(go.Bar(x=meses_p, y=prods, name=f"Produto",
+                        marker_color="#16a34a" if is_pesca else "#be185d"))
+                    fig_pvp.add_trace(go.Scatter(x=meses_p, y=lucros2, name="Lucro Líquido",
+                        line=dict(color="#f59e0b",width=3), mode="lines+markers"))
+                    fig_pvp.add_hline(y=0, line_dash="dot", line_color="#999")
+                    fig_pvp.update_layout(barmode="stack", height=300,
+                        plot_bgcolor="white", paper_bgcolor="white",
+                        legend=dict(orientation="h", y=-0.25),
+                        margin=dict(l=0,r=0,t=10,b=0))
+                    fig_pvp.update_yaxes(gridcolor="#f0f0f0")
+                    st.plotly_chart(fig_pvp, use_container_width=True)
+
 st.divider()
-st.caption("📦 PUDO Vila Carrão — Plano de Negócio v4.0 | Dashboard · Financeiro · DRE · Plano · Desenho")
+st.caption("📦 PUDO Vila Carrão — Plano de Negócio v5.0 | Dashboard · Financeiro · DRE · Plano · Desenho · Controle Mensal")
