@@ -228,7 +228,7 @@ with col_tab:
             return ""
 
     st.dataframe(
-        df_display.style.applymap(color_resultado, subset=["Resultado", "Saldo Acumulado"]),
+        df_display.style.map(color_resultado, subset=["Resultado", "Saldo Acumulado"]),
         use_container_width=True, hide_index=True
     )
 
