@@ -53,7 +53,8 @@ st.markdown("""
         font-size: 13px; font-weight: 600; margin-right: 8px;
     }
     .badge-pesca  { background: #dcfce7; color: #15803d; }
-    .badge-beleza { background: #fce7f3; color: #9d174d; }
+    .badge-lar    { background: #ffedd5; color: #c2410c; }
+    .badge-retro  { background: #ede9fe; color: #6d28d9; }
     .badge-pudo   { background: #dbeafe; color: #1d4ed8; }
 </style>
 """, unsafe_allow_html=True)
@@ -64,9 +65,30 @@ st.markdown("""
 with st.sidebar:
     st.markdown("## ⚙️ Parâmetros")
 
-    modelo = st.radio("Modelo de Negócio", ["📦🐟  PUDO + Pesca", "📦💄  PUDO + Beleza"], index=0)
-    is_pesca = "Pesca" in modelo
-    accent   = "#16a34a" if is_pesca else "#be185d"
+    modelo = st.radio("Modelo de Negócio", [
+        "📦🐟  PUDO + Pesca",
+        "📦🏠  PUDO + Itens para o Lar",
+        "📦🎮  PUDO + HD Jogos Retro",
+    ], index=0)
+    if "Pesca" in modelo:      segmento = "pesca"
+    elif "Lar" in modelo:      segmento = "lar"
+    else:                      segmento = "retro"
+    is_pesca = segmento == "pesca"  # mantido por compatibilidade
+    SEG = {
+        "pesca": dict(label="🐟 Pesca",         nome="Pesca Esportiva",
+                      badge="badge-pesca", accent="#16a34a", cor_sec="green",
+                      chart="#16a34a",   card_bg="#f0fdf4", card_bd="#16a34a", card_txt="#15803d",
+                      itens=70, ticket=180., marg=50, capex_est=8000),
+        "lar":   dict(label="🏠 Lar",           nome="Itens para o Lar",
+                      badge="badge-lar",   accent="#ea580c", cor_sec="orange",
+                      chart="#ea580c",   card_bg="#fff7ed", card_bd="#ea580c", card_txt="#c2410c",
+                      itens=90, ticket=95.,  marg=45, capex_est=6000),
+        "retro": dict(label="🎮 HD Retro",      nome="HD para Jogos Retro",
+                      badge="badge-retro", accent="#6d28d9", cor_sec="purple",
+                      chart="#6d28d9",   card_bg="#f5f3ff", card_bd="#6d28d9", card_txt="#5b21b6",
+                      itens=40, ticket=220., marg=55, capex_est=10000),
+    }[segmento]
+    accent = SEG["accent"]
 
     st.markdown("---")
     st.markdown("#### 🏠 Custos Fixos Mensais")
@@ -93,18 +115,11 @@ with st.sidebar:
     full_tick    = st.number_input("Receita / pedido (R$)",    0.0, 50.0, 12.0, 1.0)
 
     st.markdown("---")
-    if is_pesca:
-        st.markdown("#### 🐟 Produto — Pesca")
-        prod_itens  = st.number_input("Itens / mês (meta M6)",   0, 2000,  70,  5)
-        prod_ticket = st.number_input("Ticket médio (R$)",     0.0, 1000., 180., 10.)
-        prod_marg   = st.slider("Margem bruta (%)", 0, 100, 50)
-        capex_est   = st.number_input("Estoque inicial (R$)",    0, 100000, 8000, 500)
-    else:
-        st.markdown("#### 💄 Produto — Beleza")
-        prod_itens  = st.number_input("Itens / mês (meta M6)",   0, 3000, 100,   5)
-        prod_ticket = st.number_input("Ticket médio (R$)",     0.0,  500.,  90.,  5.)
-        prod_marg   = st.slider("Margem bruta (%)", 0, 100, 58)
-        capex_est   = st.number_input("Estoque inicial (R$)",    0, 100000, 6000, 500)
+    st.markdown(f"#### {SEG['label']} — Produto")
+    prod_itens  = st.number_input("Itens / mês (meta M6)",  0, 5000,  SEG["itens"],  5)
+    prod_ticket = st.number_input("Ticket médio (R$)",     0.0,2000., SEG["ticket"], 10.)
+    prod_marg   = st.slider("Margem bruta (%)", 0, 100, SEG["marg"])
+    capex_est   = st.number_input("Estoque inicial (R$)",   0, 200000, SEG["capex_est"], 500)
 
     st.markdown("---")
     st.markdown("#### 💰 Investimento Inicial")
@@ -184,8 +199,8 @@ roi_12   = df_real["Lucro Líquido"].sum() / capex_total * 100 if capex_total el
 # ══════════════════════════════════════════════════════════════
 # CABEÇALHO
 # ══════════════════════════════════════════════════════════════
-segmento_label = "🐟 Pesca" if is_pesca else "💄 Beleza"
-cor_badge = "badge-pesca" if is_pesca else "badge-beleza"
+segmento_label = SEG["label"]
+cor_badge      = SEG["badge"]
 
 st.markdown(f"""
 <h2 style="margin-bottom:4px;">📦 PUDO Vila Carrão
@@ -265,7 +280,7 @@ with t_dash:
         labels = ["PUDO Retirada", "Log. Reversa", "Fulfilment",
                   segmento_label.replace("🐟 ","").replace("💄 ","")]
         values = [rec_pudo_m, rec_rev_m, rec_full_m, rec_prod_m6]
-        cores  = ["#2563eb","#7c3aed","#0d9488", "#16a34a" if is_pesca else "#be185d"]
+        cores  = ["#2563eb","#7c3aed","#0d9488", SEG["chart"]]
         fig2 = go.Figure(go.Pie(labels=labels, values=values, hole=.5,
             marker_colors=cores, textinfo="percent+label", textfont_size=11))
         fig2.update_layout(height=290, showlegend=False,
@@ -526,9 +541,9 @@ with t_cont:
 # TAB 4 — PLANO DE NEGÓCIO
 # ════════════════════════════════════════════════
 with t_plano:
-    segmento_nome = "Pesca Esportiva" if is_pesca else "Cosméticos e Beleza"
-    cor_sec = "green" if is_pesca else "pink"
-    emoji_s = "🐟" if is_pesca else "💄"
+    segmento_nome = SEG["nome"]
+    cor_sec       = SEG["cor_sec"]
+    emoji_s       = SEG["label"].split()[0]
 
     st.markdown(f'<div class="section-title {cor_sec}">Modelo de Negócio Integrado — PUDO + {segmento_nome}</div>',
                 unsafe_allow_html=True)
@@ -542,16 +557,11 @@ with t_plano:
             f"• Venda especializada em {segmento_nome.lower()}\n"
             "• Atendimento consultivo presencial"
         ),
-        "Segmentos de Cliente": (
-            ("• Pescadores zona leste (masc. 25–55 anos)\n"
-             "• Compradores online sem endereço fixo\n"
-             "• Vendedores de marketplace (fulfilment)\n"
-             "• Clubes e grupos de pesca da região") if is_pesca else
-            ("• Mulheres 18–50 anos, classes C/B\n"
-             "• Compradores online sem endereço fixo\n"
-             "• Vendedores de marketplace (fulfilment)\n"
-             "• Profissionais de beleza autônomos")
-        ),
+        "Segmentos de Cliente": {
+            "pesca":  "• Pescadores zona leste (masc. 25–55 anos)\n• Compradores online s/ endereço fixo\n• Vendedores de marketplace (fulfilment)\n• Clubes e grupos de pesca da região",
+            "lar":    "• Famílias classes C/B (25–55 anos)\n• Compradores online s/ endereço fixo\n• Vendedores de marketplace (fulfilment)\n• Pequenos comerciantes locais",
+            "retro":  "• Gamers retro (masc. 20–40 anos, A/B)\n• Compradores online s/ endereço fixo\n• Revendedores de eletrônicos\n• Colecionadores de games",
+        }[segmento],
         "Fontes de Receita": (
             "• Comissão por pacote PUDO (R$ 3–5)\n"
             "• Comissão logística reversa (R$ 8–15)\n"
@@ -572,7 +582,7 @@ with t_plano:
 
     # Plano em expanders
     with st.expander(f"1. ANÁLISE DE MERCADO — {segmento_nome.upper()}", expanded=True):
-        if is_pesca:
+        if segmento == "pesca":
             st.markdown("""
 | Indicador | Dado | Fonte |
 |---|---|---|
@@ -583,35 +593,52 @@ with t_plano:
 | Sazonalidade alta | Março–Setembro | Calendário IBAMA SP |
 | Zona Leste SP — perfil | Classes B2/C1, forte comunidade de lazer | IBGE / DataSP |
 
-**Links de referência:**
-[ABPESCA](https://www.abpesca.com.br) · [Sebrae Pesca](https://www.sebrae.com.br/sites/PortalSebrae/artigos/pesca-esportiva) · [MPA](https://www.gov.br/agricultura/pt-br/assuntos/aquicultura-e-pesca) · [Mercado Livre Pesca](https://www.mercadolivre.com.br/c/pesca)
+**Links:** [ABPESCA](https://www.abpesca.com.br) · [Sebrae Pesca](https://www.sebrae.com.br/sites/PortalSebrae/artigos/pesca-esportiva) · [MPA](https://www.gov.br/agricultura/pt-br/assuntos/aquicultura-e-pesca)
+""")
+        elif segmento == "lar":
+            st.markdown("""
+| Indicador | Dado | Fonte |
+|---|---|---|
+| Mercado utilidades domésticas Brasil (2024) | R$ 80 bilhões | IEMI / ABCasa |
+| Crescimento e-commerce casa/decoração | +18% a.a. | ABComm |
+| Ticket médio online (lar) | R$ 60–180 | Mercado Livre |
+| Perfil do comprador | Famílias classes C/B, 25–55 anos | IBGE |
+| Sazonalidade alta | Outubro–Janeiro (Natal + Ano Novo) | ABComm |
+| Zona Leste SP — perfil | Alta densidade familiar, classe trabalhadora | IBGE / DataSP |
+
+**Links:** [ABCasa](https://www.abcasafeira.com.br) · [IEMI](https://www.iemi.com.br) · [ABComm](https://www.abcomm.org.br) · [Mercado Livre Lar](https://www.mercadolivre.com.br/c/casa)
 """)
         else:
             st.markdown("""
 | Indicador | Dado | Fonte |
 |---|---|---|
-| Mercado beleza / cosméticos Brasil (2024) | R$ 45 bilhões | ABIHPEC |
-| Crescimento e-commerce beleza | +25% (2023→2024) | NielsenIQ |
-| Brasil no ranking mundial de beleza | 4º lugar | Euromonitor |
-| Ticket médio online (beleza) | R$ 80–200 | ABIHPEC |
-| Zona Leste SP — perfil | Classes C1/C2, alta recorrência de compra | IBGE / DataSP |
+| Mercado games Brasil (2024) | R$ 10 bilhões | Abragames |
+| Crescimento retro gaming global | ~15% a.a. | Newzoo |
+| Ticket médio HD/SSD configurado | R$ 120–500 | Mercado Livre |
+| Perfil do comprador | Masculino 20–40 anos, classes A/B | Abragames |
+| Margem produto configurado vs bruto | +30–40% extra | Estimativa |
+| Zona Leste SP — perfil | Alta concentração de gamers urbanos | Abragames |
 
-**Links de referência:**
-[ABIHPEC](https://www.abihpec.org.br/publicacao/panorama-do-setor/) · [ANVISA Cosméticos](https://www.gov.br/anvisa/pt-br/setorregulado/regularizacao/cosmeticos) · [Beauty Fair](https://www.beautyfair.com.br)
+**Links:** [Abragames](https://www.abragames.org) · [Mercado Livre Games](https://www.mercadolivre.com.br/c/videogames) · [Retro Gaming BR (grupos)](https://www.facebook.com/groups/retrogamingbrasil)
 """)
 
     with st.expander("2. PLANO DE MARKETING — 4Ps"):
         p1, p2 = st.columns(2)
-        if is_pesca:
+        if segmento == "pesca":
             p1.markdown("**🎣 Produto**\n\nVaras, molinetes, linhas, iscas artificiais, kit iniciante. Foco em pesca em represa/rio (perfil interior paulista).")
             p1.markdown("**💰 Preço**\n\nCompetitivo com marketplace (−10%), desconto em kit, parcelamento 6×.")
             p2.markdown("**📍 Praça**\n\nLoja física + Mercado Livre + Shopee + WhatsApp Business.")
             p2.markdown("**📣 Promoção**\n\nInstagram (#pesca), grupos WhatsApp de pescadores, YouTube reviews, parceria com clubes locais.")
+        elif segmento == "lar":
+            p1.markdown("**🏠 Produto**\n\nUtensílios domésticos, organização closet/cozinha, ferramentas, decoração, limpeza premium. Foco em itens de alto giro não encontrados no mercado local.")
+            p1.markdown("**💰 Preço**\n\n10–15% abaixo de supermercados e lojas de departamento, combos temáticos (kit cozinha, kit organização), parcelamento 3×.")
+            p2.markdown("**📍 Praça**\n\nLoja física + Mercado Livre + Shopee + Americanas + WhatsApp + delivery motoboy (raio 5 km).")
+            p2.markdown("**📣 Promoção**\n\nInstagram/Pinterest (fotos ambiente), grupos de mães/donas de casa zona leste, Google Meu Negócio, promoção 'semana do lar'.")
         else:
-            p1.markdown("**💄 Produto**\n\nColoração, tratamento capilar, maquiagem, skincare, perfumaria. Linha afro/crespo em destaque.")
-            p1.markdown("**💰 Preço**\n\n10–20% abaixo de farmácias, cartão fidelidade, combos temáticos.")
-            p2.markdown("**📍 Praça**\n\nLoja física + Mercado Livre + Shopee + Instagram Shopping + delivery motoboy (raio 5 km).")
-            p2.markdown("**📣 Promoção**\n\nTikTok/Instagram (tutoriais), micro-influenciadoras zona leste, Google Meu Negócio, stories promocionais.")
+            p1.markdown("**🎮 Produto**\n\nSSDs/HDDs com sistema RetroBat/Batocera pré-configurado, pendrives retro, Raspberry Pi kits, consoles clone (Anbernic, MiyooPocket), acessórios. Diferencial: produto entregue pronto para jogar.")
+            p1.markdown("**💰 Preço**\n\nPrecificação por valor (produto configurado vale mais), preço similar ao Mercado Livre + suporte presencial gratuito. Parcelamento 6×.")
+            p2.markdown("**📍 Praça**\n\nLoja física (demonstração ao vivo) + Mercado Livre + Shopee + grupos Telegram/WhatsApp retrogaming.")
+            p2.markdown("**📣 Promoção**\n\nYouTube (unboxing + gameplay retro), TikTok, grupos Facebook retro BR, parceria com streamers locais, showcase mensal na loja.")
 
     with st.expander("3. PLANO OPERACIONAL — Layout, Estrutura e Metragem", expanded=False):
         col_planta, col_tabop = st.columns([3, 2])
@@ -1392,7 +1419,7 @@ with t_ctrl:
                        d_cur.get("rec_full",0), d_cur.get("rec_produto",0)]
                 fig_pie2 = go.Figure(go.Pie(labels=lbs, values=vls, hole=.45,
                     marker_colors=["#2563eb","#7c3aed","#0d9488",
-                                   "#16a34a" if is_pesca else "#be185d"],
+                                   SEG["chart"]],
                     textinfo="percent+label", textfont_size=10))
                 fig_pie2.update_layout(height=250, showlegend=False,
                     paper_bgcolor="white", margin=dict(l=0,r=0,t=0,b=0))
@@ -1609,7 +1636,7 @@ with t_ctrl:
                 fig_ev.add_trace(go.Bar(x=ev_meses, y=ev_pudo, name="PUDO/Log",
                     marker_color="#2563eb"), row=2, col=1)
                 fig_ev.add_trace(go.Bar(x=ev_meses, y=ev_prod, name="Produto",
-                    marker_color="#16a34a" if is_pesca else "#be185d"), row=2, col=1)
+                    marker_color=SEG["chart"]), row=2, col=1)
 
                 fig_ev.update_layout(barmode="stack", height=520,
                     plot_bgcolor="white", paper_bgcolor="white",
@@ -1701,9 +1728,9 @@ with t_ctrl:
                     </div>""", unsafe_allow_html=True)
 
                 with col_pr:
-                    cor_prod_hex = "#f0fdf4" if is_pesca else "#fdf2f8"
-                    cor_bd_hex  = "#16a34a" if is_pesca else "#be185d"
-                    cor_txt_hex = "#15803d" if is_pesca else "#9d174d"
+                    cor_prod_hex = SEG["card_bg"]
+                    cor_bd_hex   = SEG["card_bd"]
+                    cor_txt_hex  = SEG["card_txt"]
                     st.markdown(f"""
                     <div style="background:{cor_prod_hex};border:2px solid {cor_bd_hex};border-radius:12px;padding:20px">
                       <div style="font-size:13px;font-weight:700;color:{cor_txt_hex};margin-bottom:12px">
@@ -1742,7 +1769,7 @@ with t_ctrl:
                     fig_pvp.add_trace(go.Bar(x=meses_p, y=pudos, name="PUDO/Log",
                         marker_color="#2563eb"))
                     fig_pvp.add_trace(go.Bar(x=meses_p, y=prods, name=f"Produto",
-                        marker_color="#16a34a" if is_pesca else "#be185d"))
+                        marker_color=SEG["chart"]))
                     fig_pvp.add_trace(go.Scatter(x=meses_p, y=lucros2, name="Lucro Líquido",
                         line=dict(color="#f59e0b",width=3), mode="lines+markers"))
                     fig_pvp.add_hline(y=0, line_dash="dot", line_color="#999")
