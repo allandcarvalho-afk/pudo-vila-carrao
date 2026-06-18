@@ -213,13 +213,14 @@ st.markdown(f"""
 # ══════════════════════════════════════════════════════════════
 # TABS PRINCIPAIS
 # ══════════════════════════════════════════════════════════════
-t_dash, t_fin, t_cont, t_plano, t_draw, t_ctrl = st.tabs([
+t_dash, t_fin, t_cont, t_plano, t_draw, t_ctrl, t_cred = st.tabs([
     "🎯  Dashboard Executivo",
     "💰  Financeiro",
     "📊  Contabilidade (DRE)",
     "📋  Plano de Negócio",
     "✏️  Desenho da Estrutura",
     "📅  Controle Mensal",
+    "🏢  Credenciamento PUDO",
 ])
 
 # ════════════════════════════════════════════════
@@ -1780,5 +1781,379 @@ with t_ctrl:
                     fig_pvp.update_yaxes(gridcolor="#f0f0f0")
                     st.plotly_chart(fig_pvp, use_container_width=True)
 
+# ════════════════════════════════════════════════
+# TAB 7 — CREDENCIAMENTO PUDO
+# ════════════════════════════════════════════════
+with t_cred:
+    st.markdown("## 🏢 Credenciamento como Ponto PUDO")
+    st.caption("Informações oficiais das plataformas · Atualizado Jun/2025")
+
+    # ── Comparativo rápido no topo
+    st.markdown("### Comparativo Rápido — 3 Plataformas Principais")
+
+    PLAT = {
+        "Mercado Livre": {
+            "emoji": "🟡", "cor": "#fff7e6", "borda": "#f59e0b",
+            "titulo_cor": "#b45309",
+            "area_min": "4 m²",
+            "comissao": "Variável / mensal*",
+            "prazo_resp": "Variável (por demanda)",
+            "funcionarios": "Mín. 2 pessoas",
+            "horario": "Seg–Sex, horário comercial",
+            "cnpj": "Obrigatório",
+            "link": "https://envios.mercadolivre.com.br/agencias-mercado-livre/registro",
+            "link_label": "Cadastrar como Agência ML",
+        },
+        "Shopee": {
+            "emoji": "🟠", "cor": "#fff4ed", "borda": "#ea580c",
+            "titulo_cor": "#c2410c",
+            "area_min": "4 m²",
+            "comissao": "R$ 0,60 – R$ 1,50 / pacote",
+            "prazo_resp": "Até 10 dias úteis",
+            "funcionarios": "Mín. 2 pessoas",
+            "horario": "Seg–Sab, horário comercial",
+            "cnpj": "Obrigatório + CNAE compatível",
+            "link": "https://help.shopee.com.br/portal/4/article/175942",
+            "link_label": "Cadastrar como Agência Shopee",
+        },
+        "Amazon Hub": {
+            "emoji": "🔵", "cor": "#eff6ff", "borda": "#2563eb",
+            "titulo_cor": "#1d4ed8",
+            "area_min": "Não divulgado*",
+            "comissao": "R$ 1,95 – R$ 2,23 / pacote",
+            "prazo_resp": "15 a 40 dias",
+            "funcionarios": "Equipe existente",
+            "horario": "Até 7 dias/sem · entrega até 20h",
+            "cnpj": "Obrigatório + seguro operacional",
+            "link": "https://hub.amazon.com.br/counter",
+            "link_label": "Cadastrar como Amazon Hub Counter",
+        },
+    }
+
+    cols_cmp = st.columns(3)
+    for ci, (nome, p) in enumerate(PLAT.items()):
+        with cols_cmp[ci]:
+            st.markdown(f"""
+<div style="background:{p['cor']};border:2px solid {p['borda']};
+     border-radius:14px;padding:20px;height:100%">
+  <div style="font-size:22px;margin-bottom:6px">{p['emoji']} <span style="font-size:17px;font-weight:700;color:{p['titulo_cor']}">{nome}</span></div>
+  <table style="width:100%;font-size:13px;color:#444">
+    <tr><td>📐 Área mín.</td><td style="font-weight:600;text-align:right">{p['area_min']}</td></tr>
+    <tr><td>💰 Comissão</td><td style="font-weight:600;text-align:right">{p['comissao']}</td></tr>
+    <tr><td>⏱ Resp. cadastro</td><td style="text-align:right">{p['prazo_resp']}</td></tr>
+    <tr><td>👥 Equipe</td><td style="text-align:right">{p['funcionarios']}</td></tr>
+    <tr><td>🕐 Horário</td><td style="text-align:right">{p['horario']}</td></tr>
+    <tr><td>📋 CNPJ</td><td style="text-align:right">{p['cnpj']}</td></tr>
+  </table>
+  <div style="margin-top:14px;text-align:center">
+    <a href="{p['link']}" target="_blank"
+       style="background:{p['borda']};color:white;padding:8px 14px;
+              border-radius:8px;text-decoration:none;font-size:12px;font-weight:600">
+      Cadastrar agora →
+    </a>
+  </div>
+</div>""", unsafe_allow_html=True)
+
+    st.divider()
+
+    # ── Gráfico de comissão por volume
+    st.markdown("### 💰 Potencial de Receita PUDO — Estimativa por Volume")
+
+    vols = [100, 200, 300, 400, 500, 600, 800, 1000, 1200, 1500]
+    fig_com = go.Figure()
+    fig_com.add_trace(go.Scatter(x=vols, y=[v*1.0  for v in vols],
+        name="ML (estimativa R$1/pct)", line=dict(color="#f59e0b", width=2.5),
+        fill="tozeroy", fillcolor="rgba(245,158,11,0.08)"))
+    fig_com.add_trace(go.Scatter(x=vols, y=[v*1.05 for v in vols],
+        name="Shopee (R$1,05 médio)", line=dict(color="#ea580c", width=2.5),
+        fill="tozeroy", fillcolor="rgba(234,88,12,0.08)"))
+    fig_com.add_trace(go.Scatter(x=vols, y=[v*2.09 for v in vols],
+        name="Amazon (R$2,09 médio)", line=dict(color="#2563eb", width=2.5),
+        fill="tozeroy", fillcolor="rgba(37,99,235,0.08)"))
+    fig_com.update_layout(
+        height=280, plot_bgcolor="white", paper_bgcolor="white",
+        xaxis_title="Pacotes / mês", yaxis_title="Receita estimada (R$)",
+        legend=dict(orientation="h", y=-0.30),
+        margin=dict(l=0,r=0,t=10,b=0))
+    fig_com.update_yaxes(gridcolor="#f0f0f0", tickprefix="R$ ")
+    fig_com.update_xaxes(gridcolor="#f0f0f0")
+    st.plotly_chart(fig_com, use_container_width=True)
+    st.caption("* Comissão ML não divulgada oficialmente — estimativa baseada em relatos de parceiros. Amazon: conversão ~R$2,09 (€0,38 × R$5,50).")
+
+    st.divider()
+
+    # ── Detalhamento por plataforma
+    with st.expander("🟡 MERCADO LIVRE — Agência Mercado Envios (Detalhes Completos)", expanded=True):
+        d1, d2 = st.columns(2)
+        with d1:
+            st.markdown("#### Requisitos Mínimos")
+            st.markdown("""
+| Requisito | Detalhe |
+|---|---|
+| **Área mínima** | 4 m² exclusivos para pacotes |
+| **Localização** | Térreo, acesso público, acessível |
+| **CNPJ** | Ativo (qualquer segmento) |
+| **Conta Mercado Pago** | Obrigatória para receber pagamentos |
+| **Emissão de NF-e** | Necessário |
+| **Equipe mínima** | 2 pessoas disponíveis |
+| **Acesso à internet** | Smartphone ou computador |
+| **Reformas** | Nenhuma adaptação obrigatória |
+| **Equipamento especial** | Não é necessário comprar |
+| **Horário mínimo** | Seg–Sex, horário comercial |
+""")
+            st.markdown("#### Equipamentos Recomendados")
+            st.markdown("""
+- ✅ Smartphone com acesso ao app Mercado Livre
+- ✅ Leitor de QR Code (câmera do celular é suficiente)
+- ✅ Espaço físico seguro para guardar pacotes
+- ✅ Impressora (não obrigatória — ML gera etiquetas)
+- ✅ Câmera de segurança (recomendada)
+""")
+        with d2:
+            st.markdown("#### Como Funciona")
+            st.markdown("""
+**Fluxo operacional:**
+1. Transportadora deposita o pacote na sua loja
+2. Você escaneia o código no app ML
+3. Sistema notifica o comprador automaticamente
+4. Comprador apresenta QR Code para retirada
+5. Você confirma a entrega no app
+6. Comissão registrada — pagamento mensal
+
+**Fluxo de devolução (logística reversa):**
+1. Comprador chega com o produto e código de devolução
+2. Você embala e gera etiqueta no sistema
+3. Transportadora coleta no dia seguinte
+4. Comissão registrada
+
+**Vantagens:**
+- Sem investimento inicial para ML
+- Visibilidade no app como ponto de retirada
+- Marca Mercado Livre na fachada (faixa/adesivo fornecido)
+- Renda passiva sem precisar alterar o negócio principal
+""")
+            st.markdown("#### Cadastro e Documentos")
+            st.markdown("""
+| Documento | Detalhe |
+|---|---|
+| CNPJ | Cartão CNPJ atualizado |
+| Razão Social | Nome da empresa |
+| Endereço completo | Com CEP |
+| Conta Mercado Pago | Vinculada ao CNPJ |
+| Dados bancários | Para recebimento |
+""")
+            st.markdown("**🔗 [Fazer cadastro como Agência ML](https://envios.mercadolivre.com.br/agencias-mercado-livre/registro)**")
+            st.markdown("**🔗 [Central de Ajuda ML — Ponto de Coleta](https://www.mercadolivre.com.br/ajuda/inscricao-agencia-pontos-coleta_39565)**")
+
+    with st.expander("🟠 SHOPEE — Agência Shopee Drops (Detalhes Completos)"):
+        d1, d2 = st.columns(2)
+        with d1:
+            st.markdown("#### Requisitos Mínimos")
+            st.markdown("""
+| Requisito | Detalhe |
+|---|---|
+| **Área mínima** | 4 m² para armazenagem de pacotes |
+| **Endereço** | Comercial fixo (não residencial) |
+| **CNPJ** | Ativo com CNAE compatível (comércio/logística) |
+| **Certificado Digital** | Obrigatório |
+| **Equipe mínima** | 2 funcionários para atendimento |
+| **Horário mínimo** | Seg–Sab, horário comercial |
+| **Treinamento** | Obrigatório (online, feito após aprovação) |
+| **Câmeras de segurança** | Obrigatório |
+| **App SHPX SVP** | Para escanear pacotes (obrigatório) |
+""")
+            st.markdown("#### Equipamentos Obrigatórios")
+            st.markdown("""
+- 🔴 **Leitor de código de barras** (scanner)
+- 🔴 **Impressora térmica** de etiquetas
+- 🔴 **Câmera de segurança** (mínimo 1, focada no balcão)
+- 🔴 **Smartphone com internet** + app SHPX SVP instalado
+- ✅ Computador (recomendado, não obrigatório)
+- ✅ Armário/rack para organizar pacotes por código
+""")
+            st.markdown("""
+> ⚠️ **Atenção:** escanear pacote sem tê-lo fisicamente em mãos resulta em **descredenciamento imediato**.
+""")
+        with d2:
+            st.markdown("#### Modelo de Comissão")
+            st.markdown("""
+| Volume mensal | Comissão estimada / pacote |
+|---|---|
+| Até 200 pacotes | R$ 1,20 – R$ 1,50 |
+| 200–500 pacotes | R$ 0,90 – R$ 1,20 |
+| 500–1.000 pacotes | R$ 0,70 – R$ 0,90 |
+| Acima de 1.000 | R$ 0,60 – R$ 0,70 |
+
+*Shopee paga tanto pela **entrada** (recebimento) quanto pela **saída** (retirada pelo cliente).*
+""")
+            st.markdown("#### Processo de Cadastro")
+            st.markdown("""
+1. Acessar página oficial de cadastro Shopee
+2. Preencher formulário com dados da empresa e localização
+3. Shopee avalia em até **10 dias úteis**
+4. Se aprovado: e-mail de confirmação + agendamento de treinamento
+5. Treinamento online obrigatório (duração ~2h)
+6. Liberação para receber pacotes
+
+**Prazo total estimado: 2 a 4 semanas**
+""")
+            st.markdown("**🔗 [Como se tornar uma Agência Shopee](https://help.shopee.com.br/portal/4/article/175942)**")
+            st.markdown("**🔗 [FAQ Completo Agências Shopee](https://help.shopee.com.br/portal/4/article/147066)**")
+            st.markdown("**🔗 [Termos e Condições SHPX](https://help.shopee.com.br/portal/4/article/148797)**")
+
+    with st.expander("🔵 AMAZON HUB COUNTER — Detalhes Completos"):
+        d1, d2 = st.columns(2)
+        with d1:
+            st.markdown("#### Requisitos Mínimos")
+            st.markdown("""
+| Requisito | Detalhe |
+|---|---|
+| **Área mínima** | Não divulgada — "espaço seguro disponível" |
+| **Localização** | Área comercial, shopping ou zona de alto tráfego |
+| **CNPJ** | Ativo com documentação completa |
+| **Contrato Social** | Atualizado |
+| **Comprovante de endereço** | Conta de luz, água ou internet |
+| **Seguro operacional** | Obrigatório (certificado de seguro) |
+| **Equipe** | Equipe existente da loja (sem contratação extra) |
+| **Horário** | Até 7 dias/semana · entregas finalizadas até 20h |
+| **Capacidade diária** | 20 a 40 pacotes/dia |
+| **Armazenagem** | Pacotes ficam até **14 dias** em espera |
+""")
+            st.markdown("#### Equipamentos Mínimos")
+            st.markdown("""
+- 🔴 **Computador ou tablet** com internet para gerir inventário
+- 🔴 **Impressora de etiquetas** (térmica recomendada)
+- 🔴 **Espaço seguro e organizado** para armazenar pacotes
+- ✅ Câmera de segurança (recomendada)
+- ✅ Leitor de código de barras (facilita operação)
+""")
+        with d2:
+            st.markdown("#### Modelo de Comissão")
+            st.markdown("""
+| Métrica | Valor |
+|---|---|
+| **Comissão por pacote entregue** | ~R$ 1,95 – R$ 2,23 |
+| **Base oficial** | €0,35 – €0,40 por pacote |
+| **Volume esperado** | 20–40 pacotes / dia |
+| **Receita estimada (30 pct/dia)** | R$ 1.755 – R$ 2.007 / mês |
+| **Prazo de pagamento** | Mensal |
+| **Armazenagem** | Até 14 dias sem custo adicional |
+
+> 💡 Amazon Hub foi lançado em 2024 no Brasil. O programa pode gerar mais de **R$ 300 milhões/ano** em pagamentos às PMEs participantes.
+""")
+            st.markdown("#### Processo de Cadastro")
+            st.markdown("""
+1. Acessar **hub.amazon.com.br/counter**
+2. Preencher formulário com dados da empresa
+3. Enviar documentação: CNPJ, contrato social, comprovante de endereço, seguro
+4. Amazon avalia em **15 a 40 dias**
+5. Aprovação + onboarding (treinamento operacional)
+6. Início das operações
+
+**Prazo total estimado: 1 a 2 meses**
+""")
+            st.markdown("**🔗 [Cadastro Amazon Hub Counter](https://hub.amazon.com.br/counter)**")
+            st.markdown("**🔗 [Portal Amazon Hub Brasil](https://hub.amazon.com.br)**")
+            st.markdown("**🔗 [Amazon Hub Delivery (entregador)](https://logistics.amazon.com.br/hubdelivery)**")
+
+    st.divider()
+
+    # ── Checklist de equipamentos consolidado
+    st.markdown("### 🛒 Checklist de Equipamentos — O Que Você Precisa Para as 3 Plataformas")
+
+    eq_data = [
+        ("Smartphone com internet",                "✅ ML", "✅ Shopee", "✅ Amazon", "Obrigatório",  "R$ 0 (já possui)"),
+        ("App Mercado Livre",                      "✅ ML", "—",         "—",         "Gratuito",     "R$ 0"),
+        ("App SHPX SVP (Shopee)",                  "—",     "✅ Shopee", "—",         "Obrigatório",  "R$ 0 (gratuito)"),
+        ("Leitor código de barras / scanner",      "⬜ Rec","✅ Obrig",  "⬜ Rec",    "Recomendado",  "R$ 150–400"),
+        ("Impressora térmica de etiquetas",        "⬜ Rec","✅ Obrig",  "✅ Obrig",   "Obrigatório",  "R$ 400–900"),
+        ("Computador ou tablet",                   "⬜ Rec","⬜ Rec",   "✅ Obrig",   "Recomendado",  "R$ 800–2.500"),
+        ("Câmera de segurança (mín. 1)",           "⬜ Rec","✅ Obrig",  "⬜ Rec",    "Obrigatório",  "R$ 200–600 / câmera"),
+        ("Espaço físico organizado (4 m²+)",       "✅ ML", "✅ Shopee", "✅ Amazon",  "Obrigatório",  "—"),
+        ("CNPJ ativo",                             "✅ ML", "✅ Shopee", "✅ Amazon",  "Obrigatório",  "R$ 0–1.500 abertura"),
+        ("Conta Mercado Pago",                     "✅ ML", "—",         "—",         "Obrigatório",  "R$ 0 (gratuito)"),
+        ("Certificado Digital e-CNPJ",             "—",     "✅ Shopee", "—",         "Obrigatório",  "R$ 200–350 / ano"),
+        ("Seguro operacional",                     "—",     "—",         "✅ Amazon",  "Obrigatório",  "R$ 150–400 / mês"),
+        ("Balança (até 30 kg)",                    "⬜ Rec","⬜ Rec",   "—",         "Recomendado",  "R$ 200–500"),
+        ("Rack/armário organizador de pacotes",    "⬜ Rec","⬜ Rec",   "⬜ Rec",    "Recomendado",  "R$ 300–900"),
+    ]
+
+    df_eq = pd.DataFrame(eq_data, columns=[
+        "Equipamento", "Mercado Livre", "Shopee", "Amazon Hub", "Status", "Custo Estimado"])
+
+    def cor_eq(val):
+        if "✅" in str(val): return "color:#16a34a;font-weight:600"
+        if "⬜" in str(val): return "color:#ca8a04"
+        if "—"  in str(val): return "color:#94a3b8"
+        return ""
+
+    st.dataframe(
+        df_eq.style.map(cor_eq, subset=["Mercado Livre","Shopee","Amazon Hub"]),
+        use_container_width=True, hide_index=True)
+
+    # ── Custo total de setup
+    st.divider()
+    st.markdown("### 💸 Custo Total de Setup para 3 Plataformas Simultaneamente")
+    setup_items = {
+        "Impressora térmica": 650,
+        "Scanner de código de barras": 280,
+        "Câmera de segurança (2 un)": 700,
+        "Rack organizador de pacotes": 600,
+        "Certificado Digital e-CNPJ": 280,
+        "Balança até 30kg": 350,
+        "Tablet para Amazon Hub": 1200,
+        "Seguro operacional (1 mês)": 250,
+        "Abertura de empresa (se necessário)": 1200,
+    }
+    total_setup = sum(setup_items.values())
+    s1, s2 = st.columns(2)
+    with s1:
+        st.markdown("**Itens e valores estimados:**")
+        for item, val in setup_items.items():
+            st.markdown(f"- {item}: **R$ {val:,.0f}**".replace(",","."))
+        st.markdown(f"**💰 Total estimado: R$ {total_setup:,.0f}**".replace(",","."))
+        st.caption("Valores de mercado — podem variar. Itens que já possui reduzem o total.")
+
+    with s2:
+        fig_setup = px.bar(
+            x=list(setup_items.values()), y=list(setup_items.keys()),
+            orientation="h",
+            color=list(setup_items.values()),
+            color_continuous_scale=["#dbeafe","#1d4ed8"],
+            text=[f"R$ {v:,.0f}".replace(",",".") for v in setup_items.values()],
+        )
+        fig_setup.update_traces(textposition="outside")
+        fig_setup.update_layout(
+            height=320, showlegend=False, coloraxis_showscale=False,
+            plot_bgcolor="white", paper_bgcolor="white",
+            margin=dict(l=0,r=90,t=10,b=0))
+        fig_setup.update_xaxes(visible=False)
+        st.plotly_chart(fig_setup, use_container_width=True)
+
+    st.divider()
+
+    # ── Outras plataformas
+    st.markdown("### 📦 Outras Plataformas PUDO — Referências")
+    outras = [
+        ("Correios Agente",  "R$ 2,50–4,00/pct", "CNPJ + alvará",           "https://www.correios.com.br/solucoes-empresariais/agentes-correios"),
+        ("Jadlog Pickup",    "R$ 3,00–5,00/pct", "CNPJ + espaço físico",    "https://www.jadlog.com.br/jadlog/pickup"),
+        ("Pegaki",           "R$ 3,00–4,50/pct", "CNPJ + cadastro online",  "https://www.pegaki.com.br/seja-um-ponto"),
+        ("Total Express",    "R$ 3,00–4,00/pct", "CNPJ + parceria",         "https://www.totalexpress.com.br/seja-parceiro"),
+        ("Loggi",            "Variável",          "CNPJ + app Loggi",        "https://www.loggi.com"),
+        ("Sequoia Pickup",   "Variável",          "CNPJ + parceria",         "https://www.sequoialog.com.br"),
+    ]
+    cols_out = st.columns(3)
+    for oi, (nome, comissao, req, link) in enumerate(outras):
+        with cols_out[oi % 3]:
+            st.markdown(f"""
+<div style="background:white;border:1px solid #e2e8f0;border-radius:10px;
+     padding:14px;margin-bottom:10px;box-shadow:0 1px 3px rgba(0,0,0,.05)">
+  <div style="font-weight:700;font-size:14px;color:#1e293b">{nome}</div>
+  <div style="font-size:12px;color:#16a34a;margin:4px 0">💰 {comissao}</div>
+  <div style="font-size:11px;color:#64748b">📋 {req}</div>
+  <a href="{link}" target="_blank"
+     style="font-size:11px;color:#2563eb;text-decoration:none">🔗 Cadastrar →</a>
+</div>""", unsafe_allow_html=True)
+
 st.divider()
-st.caption("📦 PUDO Vila Carrão — Plano de Negócio v5.0 | Dashboard · Financeiro · DRE · Plano · Desenho · Controle Mensal")
+st.caption("📦 PUDO Vila Carrão — Plano de Negócio v6.0 | Dashboard · Financeiro · DRE · Plano · Desenho · Controle Mensal · Credenciamento")
