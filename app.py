@@ -213,7 +213,7 @@ st.markdown(f"""
 # ══════════════════════════════════════════════════════════════
 # TABS PRINCIPAIS
 # ══════════════════════════════════════════════════════════════
-t_dash, t_fin, t_cont, t_plano, t_draw, t_ctrl, t_cred = st.tabs([
+t_dash, t_fin, t_cont, t_plano, t_draw, t_ctrl, t_cred, t_adm = st.tabs([
     "🎯  Dashboard Executivo",
     "💰  Financeiro",
     "📊  Contabilidade (DRE)",
@@ -221,6 +221,7 @@ t_dash, t_fin, t_cont, t_plano, t_draw, t_ctrl, t_cred = st.tabs([
     "✏️  Desenho da Estrutura",
     "📅  Controle Mensal",
     "🏢  Credenciamento PUDO",
+    "🗂️  Gestão Operacional",
 ])
 
 # ════════════════════════════════════════════════
@@ -2156,4 +2157,356 @@ with t_cred:
 </div>""", unsafe_allow_html=True)
 
 st.divider()
-st.caption("📦 PUDO Vila Carrão — Plano de Negócio v6.0 | Dashboard · Financeiro · DRE · Plano · Desenho · Controle Mensal · Credenciamento")
+# ════════════════════════════════════════════════════════════════
+# TAB 8 — GESTÃO OPERACIONAL
+# ════════════════════════════════════════════════════════════════
+with t_adm:
+    import uuid as _uuid
+    from datetime import date as _date, datetime as _dt
+
+    # ── Constantes
+    CATEGORIAS = {
+        # label: (natureza, cor, icone)
+        "Entrada PUDO — Pacote Recebido":    ("entrada", "#2563eb", "📥"),
+        "Saída PUDO — Pacote Entregue":      ("entrada", "#0d9488", "📤"),
+        "Logística Reversa — Recebida":      ("entrada", "#7c3aed", "↩️"),
+        "Logística Reversa — Despachada":    ("entrada", "#7c3aed", "↪️"),
+        "Venda Produto — Loja Física":       ("entrada", "#16a34a", "🏪"),
+        "Venda Produto — Mercado Livre":     ("entrada", "#f59e0b", "🟡"),
+        "Venda Produto — Shopee":            ("entrada", "#ea580c", "🟠"),
+        "Venda Produto — Amazon":            ("entrada", "#1d4ed8", "🔵"),
+        "Venda Produto — Outro Canal":       ("entrada", "#16a34a", "🛒"),
+        "Troca / Devolução — Recebida":      ("saida",   "#dc2626", "🔄"),
+        "Compra de Estoque":                 ("saida",   "#dc2626", "📦"),
+        "Despesa — Aluguel":                 ("saida",   "#dc2626", "🏠"),
+        "Despesa — Pessoal":                 ("saida",   "#dc2626", "👥"),
+        "Despesa — Marketing":               ("saida",   "#dc2626", "📣"),
+        "Despesa — Operacional":             ("saida",   "#dc2626", "⚙️"),
+        "Despesa — Imposto":                 ("saida",   "#dc2626", "📋"),
+        "Outra Entrada":                     ("entrada", "#16a34a", "➕"),
+        "Outra Saída":                       ("saida",   "#dc2626", "➖"),
+    }
+    PLATAFORMAS = ["Mercado Livre","Shopee","Amazon","Loja Física","Correios","Jadlog","Outro"]
+    STATUS_OPTS = ["✅ Concluído","⏳ Pendente","❌ Cancelado"]
+
+    # ── Session state
+    if "lancamentos" not in st.session_state:
+        st.session_state.lancamentos = []
+    if "edit_id" not in st.session_state:
+        st.session_state.edit_id = None
+
+    def novo_id():
+        return str(_uuid.uuid4())[:8].upper()
+
+    def nat_categoria(cat):
+        return CATEGORIAS.get(cat, ("entrada","#16a34a","•"))[0]
+
+    def cor_categoria(cat):
+        return CATEGORIAS.get(cat, ("entrada","#16a34a","•"))[1]
+
+    def ico_categoria(cat):
+        return CATEGORIAS.get(cat, ("entrada","#16a34a","•"))[2]
+
+    # ── Layout
+    form_col, main_col = st.columns([1, 2.8])
+
+    # ════ FORMULÁRIO ════
+    with form_col:
+        st.markdown("#### ➕ Novo Lançamento")
+
+        edit_obj = None
+        if st.session_state.edit_id:
+            edit_obj = next((l for l in st.session_state.lancamentos
+                             if l["id"] == st.session_state.edit_id), None)
+
+        with st.form("form_lanc", clear_on_submit=True):
+            data_l  = st.date_input("Data", value=_date.today(), key="fl_data")
+            cat     = st.selectbox("Categoria", list(CATEGORIAS.keys()),
+                                   index=0, key="fl_cat")
+            plat    = st.selectbox("Plataforma / Canal", PLATAFORMAS, key="fl_plat")
+            desc    = st.text_input("Descrição / Produto",
+                                    placeholder="Ex: Isca artificial Rapala 7cm", key="fl_desc")
+            c1, c2  = st.columns(2)
+            qtd     = c1.number_input("Qtd", 1, 99999, 1, key="fl_qtd")
+            vunit   = c2.number_input("Valor Unit (R$)", 0.0, 999999., 0.0, 0.5, key="fl_vunit")
+            vtotal  = qtd * vunit
+            st.markdown(f"**Total: R$ {vtotal:,.2f}**".replace(",","."))
+            status  = st.selectbox("Status", STATUS_OPTS, key="fl_status")
+            obs_l   = st.text_area("Observações", height=55, key="fl_obs")
+
+            salvar = st.form_submit_button(
+                "💾 Salvar Lançamento" if not edit_obj else "✏️ Atualizar",
+                use_container_width=True, type="primary")
+
+            if salvar and desc:
+                nat = nat_categoria(cat)
+                reg = {
+                    "id":       novo_id(),
+                    "data":     str(data_l),
+                    "cat":      cat,
+                    "plat":     plat,
+                    "desc":     desc,
+                    "qtd":      qtd,
+                    "vunit":    vunit,
+                    "vtotal":   vtotal if nat == "entrada" else -vtotal,
+                    "natureza": nat,
+                    "status":   status,
+                    "obs":      obs_l,
+                }
+                if edit_obj:
+                    idx = next(i for i,l in enumerate(st.session_state.lancamentos)
+                               if l["id"] == st.session_state.edit_id)
+                    reg["id"] = st.session_state.edit_id
+                    st.session_state.lancamentos[idx] = reg
+                    st.session_state.edit_id = None
+                else:
+                    st.session_state.lancamentos.append(reg)
+                st.rerun()
+
+        st.divider()
+
+        # ── Filtros
+        st.markdown("#### 🔍 Filtros")
+        filt_nat  = st.multiselect("Natureza", ["entrada","saida"],
+                                   default=["entrada","saida"], key="filt_nat")
+        filt_plat = st.multiselect("Plataforma", PLATAFORMAS, default=[], key="filt_plat")
+        filt_stat = st.multiselect("Status", STATUS_OPTS, default=[], key="filt_stat")
+        filt_txt  = st.text_input("Buscar descrição", key="filt_txt")
+        data_ini  = st.date_input("De", value=_date(2025,1,1), key="filt_ini")
+        data_fim  = st.date_input("Até", value=_date.today(), key="filt_fim")
+
+        st.divider()
+
+        # ── Export / Import
+        st.markdown("#### 💾 Dados")
+        if st.session_state.lancamentos:
+            j = json.dumps(st.session_state.lancamentos, ensure_ascii=False, indent=2)
+            st.download_button("⬇ Exportar JSON", j,
+                file_name="gestao_operacional_pudo.json",
+                mime="application/json", use_container_width=True)
+
+            # CSV
+            df_exp = pd.DataFrame(st.session_state.lancamentos)
+            csv_str = df_exp.to_csv(index=False, sep=";", decimal=",", encoding="utf-8-sig")
+            st.download_button("⬇ Exportar CSV (Excel)", csv_str,
+                file_name="gestao_operacional_pudo.csv",
+                mime="text/csv", use_container_width=True)
+
+        upf = st.file_uploader("⬆ Importar JSON", type="json", key="up_adm")
+        if upf:
+            try:
+                loaded = json.load(upf)
+                st.session_state.lancamentos += loaded
+                st.success(f"{len(loaded)} lançamentos importados!")
+                st.rerun()
+            except Exception:
+                st.error("Arquivo inválido.")
+
+        if st.session_state.lancamentos:
+            if st.button("🗑 Limpar todos os lançamentos",
+                         use_container_width=True, key="clear_lanc"):
+                st.session_state.lancamentos = []
+                st.rerun()
+
+    # ════ PAINEL PRINCIPAL ════
+    with main_col:
+        # Aplica filtros
+        lancs = st.session_state.lancamentos
+        if filt_nat:
+            lancs = [l for l in lancs if l["natureza"] in filt_nat]
+        if filt_plat:
+            lancs = [l for l in lancs if l["plat"] in filt_plat]
+        if filt_stat:
+            lancs = [l for l in lancs if l["status"] in filt_stat]
+        if filt_txt:
+            lancs = [l for l in lancs if filt_txt.lower() in l["desc"].lower()]
+        lancs = [l for l in lancs
+                 if str(data_ini) <= l["data"] <= str(data_fim)]
+        lancs_ord = sorted(lancs, key=lambda x: x["data"], reverse=True)
+
+        if not st.session_state.lancamentos:
+            st.info("👈 Adicione o primeiro lançamento pelo formulário ao lado.")
+        else:
+            # ── KPIs
+            total_ent = sum(l["vtotal"] for l in lancs if l["natureza"]=="entrada")
+            total_sai = sum(abs(l["vtotal"]) for l in lancs if l["natureza"]=="saida")
+            saldo     = total_ent - total_sai
+            n_pudo    = sum(1 for l in lancs if "PUDO" in l["cat"])
+            n_prod    = sum(1 for l in lancs if "Venda" in l["cat"])
+            n_pen     = sum(1 for l in lancs if "Pendente" in l["status"])
+
+            ka,kb,kc,kd,ke,kf = st.columns(6)
+            def km(col, lbl, val, fmt_fn, cls=""):
+                col.markdown(f"""<div class="hero-card {cls}">
+                  <div class="hero-lbl">{lbl}</div>
+                  <div class="hero-val" style="font-size:18px">{fmt_fn(val)}</div>
+                </div>""", unsafe_allow_html=True)
+            km(ka,"Total Entradas",  total_ent, lambda v: f"R$ {v:,.0f}".replace(",","."), "green")
+            km(kb,"Total Saídas",    total_sai, lambda v: f"R$ {v:,.0f}".replace(",","."), "red")
+            km(kc,"Saldo Período",   saldo,     lambda v: f"R$ {v:,.0f}".replace(",","."),
+               "green" if saldo>=0 else "red")
+            km(kd,"Lançamentos PUDO",n_pudo,   str)
+            km(ke,"Vendas Produto",  n_prod,   str, "green")
+            km(kf,"Pendentes",       n_pen,    str, "orange" if n_pen>0 else "")
+
+            st.markdown("<div style='margin:10px 0'></div>", unsafe_allow_html=True)
+
+            # ── Gráficos
+            g1, g2 = st.columns([2,1])
+
+            with g1:
+                # Saldo acumulado por data
+                if lancs_ord:
+                    df_gc = pd.DataFrame(lancs_ord).sort_values("data")
+                    df_gc["acum"] = df_gc["vtotal"].cumsum()
+                    fig_gc = go.Figure()
+                    fig_gc.add_trace(go.Bar(
+                        x=df_gc["data"], y=df_gc["vtotal"],
+                        marker_color=["#16a34a" if v>=0 else "#dc2626"
+                                      for v in df_gc["vtotal"]],
+                        name="Valor lançamento", opacity=.8))
+                    fig_gc.add_trace(go.Scatter(
+                        x=df_gc["data"], y=df_gc["acum"],
+                        name="Saldo acumulado",
+                        line=dict(color="#2563eb", width=2.5),
+                        mode="lines+markers"))
+                    fig_gc.add_hline(y=0, line_dash="dot", line_color="#999")
+                    fig_gc.update_layout(
+                        height=220, barmode="relative",
+                        plot_bgcolor="white", paper_bgcolor="white",
+                        legend=dict(orientation="h", y=-0.35),
+                        margin=dict(l=0,r=0,t=10,b=0),
+                        title=dict(text="Lançamentos e Saldo Acumulado",
+                                   font=dict(size=11), x=0))
+                    fig_gc.update_yaxes(gridcolor="#f0f0f0")
+                    st.plotly_chart(fig_gc, use_container_width=True)
+
+            with g2:
+                # Pizza por plataforma (entradas)
+                ent_plat = {}
+                for l in lancs:
+                    if l["natureza"] == "entrada":
+                        ent_plat[l["plat"]] = ent_plat.get(l["plat"],0) + l["vtotal"]
+                if ent_plat:
+                    fig_pp = go.Figure(go.Pie(
+                        labels=list(ent_plat.keys()),
+                        values=list(ent_plat.values()),
+                        hole=.45, textinfo="percent+label",
+                        textfont_size=9,
+                        marker_colors=["#f59e0b","#ea580c","#2563eb",
+                                       "#16a34a","#7c3aed","#0d9488","#64748b"]))
+                    fig_pp.update_layout(
+                        height=210, showlegend=False,
+                        paper_bgcolor="white",
+                        margin=dict(l=0,r=0,t=20,b=0),
+                        title=dict(text="Entradas por Canal",
+                                   font=dict(size=11), x=0.5))
+                    st.plotly_chart(fig_pp, use_container_width=True)
+
+            # ── Tabela de lançamentos
+            st.markdown(f"**{len(lancs_ord)} lançamento(s) no período**")
+
+            if lancs_ord:
+                rows_t = []
+                for l in lancs_ord:
+                    ico = ico_categoria(l["cat"])
+                    rows_t.append({
+                        "ID": l["id"],
+                        "Data": l["data"],
+                        "Tipo": f"{ico} {l['cat'][:35]}",
+                        "Canal": l["plat"],
+                        "Descrição": l["desc"][:40],
+                        "Qtd": l["qtd"],
+                        "Unit (R$)": f"{l['vunit']:,.2f}".replace(",","."),
+                        "Total (R$)": f"{l['vtotal']:,.2f}".replace(",","."),
+                        "Status": l["status"],
+                    })
+                df_t = pd.DataFrame(rows_t)
+
+                def cor_row(val):
+                    try:
+                        v = float(val.replace(".","").replace(",","."))
+                        if v > 0: return "color:#16a34a;font-weight:600"
+                        if v < 0: return "color:#dc2626;font-weight:600"
+                    except: pass
+                    return ""
+
+                st.dataframe(
+                    df_t.style.map(cor_row, subset=["Total (R$)"]),
+                    use_container_width=True, hide_index=True,
+                    height=320)
+
+                # ── Editar / Excluir lançamento
+                st.markdown("**✏️ Editar ou excluir um lançamento**")
+                ids_disp = [l["id"] for l in lancs_ord]
+                sel_id   = st.selectbox("Selecionar lançamento pelo ID",
+                                        ["— selecione —"] + ids_disp, key="sel_edit_id")
+                if sel_id != "— selecione —":
+                    obj_sel = next(l for l in st.session_state.lancamentos if l["id"]==sel_id)
+                    st.markdown(f"""
+> **{obj_sel['data']}** · {ico_categoria(obj_sel['cat'])} {obj_sel['cat']}
+> {obj_sel['plat']} · {obj_sel['desc']} · Qtd {obj_sel['qtd']} · **R$ {abs(obj_sel['vtotal']):,.2f}** · {obj_sel['status']}
+""".replace(",","."))
+                    ec1, ec2 = st.columns(2)
+                    if ec1.button("✏️ Carregar para edição", use_container_width=True):
+                        st.session_state.edit_id = sel_id
+                        st.info("Lançamento carregado no formulário ao lado. Edite e salve.")
+                    if ec2.button("🗑 Excluir este lançamento",
+                                  use_container_width=True, type="secondary"):
+                        st.session_state.lancamentos = [
+                            l for l in st.session_state.lancamentos if l["id"] != sel_id]
+                        st.success("Excluído.")
+                        st.rerun()
+
+            # ── Resumo por categoria
+            st.divider()
+            st.markdown("**📊 Resumo por Categoria**")
+            cat_res = {}
+            for l in lancs:
+                c = l["cat"]
+                if c not in cat_res:
+                    cat_res[c] = {"qtd_lanc":0,"qtd_itens":0,"total":0.0}
+                cat_res[c]["qtd_lanc"]  += 1
+                cat_res[c]["qtd_itens"] += l["qtd"]
+                cat_res[c]["total"]     += l["vtotal"]
+            if cat_res:
+                rows_cr = []
+                for cat_k, v in sorted(cat_res.items(),
+                                       key=lambda x: abs(x[1]["total"]), reverse=True):
+                    rows_cr.append({
+                        "Categoria": f"{ico_categoria(cat_k)} {cat_k}",
+                        "Lançamentos": v["qtd_lanc"],
+                        "Itens": v["qtd_itens"],
+                        "Total (R$)": f"{v['total']:,.2f}".replace(",","."),
+                    })
+                df_cr = pd.DataFrame(rows_cr)
+                st.dataframe(
+                    df_cr.style.map(cor_row, subset=["Total (R$)"]),
+                    use_container_width=True, hide_index=True)
+
+            # ── Resumo por plataforma
+            st.markdown("**📊 Resumo por Plataforma / Canal**")
+            plat_res = {}
+            for l in lancs:
+                p = l["plat"]
+                if p not in plat_res:
+                    plat_res[p] = {"entradas":0.,"saidas":0.,"saldo":0.}
+                if l["natureza"]=="entrada":
+                    plat_res[p]["entradas"] += l["vtotal"]
+                else:
+                    plat_res[p]["saidas"]   += abs(l["vtotal"])
+                plat_res[p]["saldo"] = plat_res[p]["entradas"] - plat_res[p]["saidas"]
+            if plat_res:
+                rows_pr = [{"Canal": k,
+                            "Entradas": f"R$ {v['entradas']:,.2f}".replace(",","."),
+                            "Saídas":   f"R$ {v['saidas']:,.2f}".replace(",","."),
+                            "Saldo":    f"R$ {v['saldo']:,.2f}".replace(",",".")}
+                           for k,v in sorted(plat_res.items(),
+                                             key=lambda x: x[1]["entradas"], reverse=True)]
+                df_pr = pd.DataFrame(rows_pr)
+                st.dataframe(
+                    df_pr.style.map(cor_row, subset=["Saldo"]),
+                    use_container_width=True, hide_index=True)
+
+st.divider()
+st.caption("📦 PUDO Vila Carrão — v7.0 | Dashboard · Financeiro · DRE · Plano · Desenho · Controle Mensal · Credenciamento · Gestão Operacional")
