@@ -2,6 +2,140 @@ import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
 import plotly.express as px
+import io, json as _json_mod
+
+# ── Excel helpers ─────────────────────────────────────────────────────────────
+def _xl_bytes(sheets: dict) -> bytes:
+    """Gera arquivo Excel com múltiplas abas. sheets = {nome: DataFrame}"""
+    buf = io.BytesIO()
+    with pd.ExcelWriter(buf, engine="openpyxl") as writer:
+        for nome, df in sheets.items():
+            df.to_excel(writer, sheet_name=nome[:31], index=False)
+            ws = writer.sheets[nome[:31]]
+            # Cabeçalho em negrito + cor
+            from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+            hdr_fill = PatternFill("solid", fgColor="1E3A5F")
+            hdr_font = Font(bold=True, color="FFFFFF", size=10)
+            thin = Side(style="thin", color="CCCCCC")
+            border = Border(left=thin, right=thin, top=thin, bottom=thin)
+            for cell in ws[1]:
+                cell.fill = hdr_fill
+                cell.font = hdr_font
+                cell.alignment = Alignment(horizontal="center", vertical="center")
+                cell.border = border
+            # Largura automática
+            for col in ws.columns:
+                max_len = max((len(str(c.value or "")) for c in col), default=8)
+                ws.column_dimensions[col[0].column_letter].width = min(max_len + 4, 50)
+            # Zebra nas linhas
+            alt_fill = PatternFill("solid", fgColor="F0F4FA")
+            for row_idx, row in enumerate(ws.iter_rows(min_row=2), start=2):
+                fill = alt_fill if row_idx % 2 == 0 else None
+                for cell in row:
+                    if fill: cell.fill = fill
+                    cell.border = border
+                    cell.alignment = Alignment(vertical="center")
+    return buf.getvalue()
+
+
+def excel_gestao(lancamentos: list) -> bytes:
+    if not lancamentos:
+        return b""
+    df = pd.DataFrame(lancamentos)
+    # Ajusta colunas legíveis
+    df_out = df.rename(columns={
+        "id":"ID","data":"Data","cat":"Categoria","plat":"Plataforma",
+        "desc":"Descrição","qtd":"Qtd","vunit":"Valor Unit (R$)",
+        "vtotal":"Total (R$)","natureza":"Natureza","status":"Status","obs":"Obs",
+    })
+    # Por plataforma
+    plat_grp = (df.groupby("plat")
+                  .agg(Lançamentos=("id","count"),
+                       Entradas=("vtotal", lambda x: x[x>0].sum()),
+                       Saídas=("vtotal",   lambda x: x[x<0].abs().sum()))
+                  .assign(Saldo=lambda d: d["Entradas"]-d["Saídas"])
+                  .reset_index().rename(columns={"plat":"Plataforma"}))
+    # Por categoria
+    cat_grp = (df.groupby("cat")
+                 .agg(Lançamentos=("id","count"),
+                      Itens=("qtd","sum"),
+                      Total=("vtotal","sum"))
+                 .sort_values("Total", ascending=False)
+                 .reset_index().rename(columns={"cat":"Categoria"}))
+    # Saldo mensal
+    df["mes"] = df["data"].str[:7]
+    mes_grp = (df.groupby("mes")
+                 .agg(Lançamentos=("id","count"),
+                      Entradas=("vtotal", lambda x: x[x>0].sum()),
+                      Saídas=("vtotal",   lambda x: x[x<0].abs().sum()))
+                 .assign(Saldo=lambda d: d["Entradas"]-d["Saídas"])
+                 .reset_index().rename(columns={"mes":"Mês"}))
+    return _xl_bytes({
+        "Lançamentos":    df_out,
+        "Por Plataforma": plat_grp,
+        "Por Categoria":  cat_grp,
+        "Saldo Mensal":   mes_grp,
+    })
+
+
+def excel_mensal(dados_mensais: dict) -> bytes:
+    if not dados_mensais:
+        return b""
+    MESES_BR_L = ["Jan","Fev","Mar","Abr","Mai","Jun",
+                  "Jul","Ago","Set","Out","Nov","Dez"]
+    def sort_key(k):
+        m, a = k.split("/")
+        return int(a)*100 + (MESES_BR_L.index(m) if m in MESES_BR_L else 0)
+
+    chaves = sorted(dados_mensais.keys(), key=sort_key)
+    rows_dre, rows_res = [], []
+    for ch in chaves:
+        d = dados_mensais[ch]
+        rec_log  = d.get("rec_pudo",0)+d.get("rec_reversa",0)+d.get("rec_full",0)
+        rec_prod = d.get("rec_produto",0)
+        rec_tot  = rec_log + rec_prod
+        cmv      = d.get("cmv",0)
+        imp      = d.get("impostos",0)
+        desp_fix = (d.get("desp_aluguel",0)+d.get("desp_pessoal",0)+
+                    d.get("desp_marketing",0)+d.get("desp_outras",0))
+        lucro_br = rec_tot - cmv
+        ebitda   = rec_tot - cmv - imp - desp_fix
+        lucro_liq= ebitda - d.get("depreciacao",0)
+        rows_dre.append({
+            "Mês": ch,
+            "Rec PUDO/Log (R$)": rec_log,
+            "Rec Produto (R$)":  rec_prod,
+            "Rec Total (R$)":    rec_tot,
+            "CMV (R$)":         -cmv,
+            "Impostos (R$)":    -imp,
+            "Desp Fixas (R$)":  -desp_fix,
+            "EBITDA (R$)":       ebitda,
+            "Depreciação (R$)": -d.get("depreciacao",0),
+            "Lucro Líquido (R$)":lucro_liq,
+            "Margem Bruta %":    round(lucro_br/rec_tot*100,1) if rec_tot else 0,
+            "Margem EBITDA %":   round(ebitda/rec_tot*100,1)   if rec_tot else 0,
+            "Margem Líq %":      round(lucro_liq/rec_tot*100,1)if rec_tot else 0,
+        })
+        rows_res.append({
+            "Mês": ch,
+            "PUDO (R$)":    rec_log,
+            "Produto (R$)": rec_prod,
+            "Total (R$)":   rec_tot,
+            "Lucro (R$)":   lucro_liq,
+            "Observações":  d.get("obs",""),
+        })
+    df_dre = pd.DataFrame(rows_dre)
+    df_res = pd.DataFrame(rows_res)
+    # Totais
+    num_cols = [c for c in df_dre.columns if c != "Mês"]
+    total_row = {"Mês": "TOTAL"}
+    for c in num_cols:
+        total_row[c] = df_dre[c].sum() if "%" not in c else df_dre[c].mean()
+    df_dre = pd.concat([df_dre, pd.DataFrame([total_row])], ignore_index=True)
+    return _xl_bytes({
+        "DRE Mensal":    df_dre,
+        "Resumo Mensal": df_res,
+    })
 from plotly.subplots import make_subplots
 
 st.set_page_config(
@@ -1220,6 +1354,14 @@ with t_ctrl:
     if "dados_mensais" not in st.session_state:
         st.session_state.dados_mensais = {}
 
+    # Banner de persistência
+    n_meses_salvos = len(st.session_state.dados_mensais)
+    if n_meses_salvos == 0:
+        st.warning("⚠️ Nenhum histórico carregado. Se já possui dados salvos, importe o JSON pelo painel de exportação abaixo.", icon="💾")
+    else:
+        meses_lista = sorted(st.session_state.dados_mensais.keys())
+        st.success(f"✅ {n_meses_salvos} mês(es) no histórico: {' · '.join(meses_lista)}", icon="📅")
+
     # ── helpers
     def chave_mes(m, a): return f"{m}/{a}"
     def calcular(d):
@@ -1303,10 +1445,18 @@ with t_ctrl:
         st.markdown("**📤 Exportar / Importar dados**")
         if st.session_state.dados_mensais:
             json_str = json.dumps(st.session_state.dados_mensais, ensure_ascii=False, indent=2)
-            st.download_button("⬇ Baixar JSON", json_str,
+            st.download_button("⬇ Baixar JSON (backup)", json_str,
                 file_name="controle_mensal_pudo.json", mime="application/json",
                 use_container_width=True)
+            # Excel
+            xl = excel_mensal(st.session_state.dados_mensais)
+            if xl:
+                st.download_button("📊 Exportar Excel (.xlsx)", xl,
+                    file_name="historico_mensal_pudo.xlsx",
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    use_container_width=True)
 
+        st.caption("💡 Salve o JSON após cada sessão para não perder o histórico. Importe-o ao abrir o app novamente.")
         up = st.file_uploader("⬆ Carregar JSON salvo", type="json", key="up_json")
         if up:
             try:
@@ -2195,6 +2345,15 @@ with t_adm:
     if "edit_id" not in st.session_state:
         st.session_state.edit_id = None
 
+    # Banner de persistência
+    n_lanc = len(st.session_state.lancamentos)
+    if n_lanc == 0:
+        st.warning("⚠️ Nenhum lançamento carregado. Importe um JSON salvo anteriormente ou comece a lançar agora.", icon="💾")
+    else:
+        total_ent_b = sum(l["vtotal"] for l in st.session_state.lancamentos if l["natureza"]=="entrada")
+        total_sai_b = sum(abs(l["vtotal"]) for l in st.session_state.lancamentos if l["natureza"]=="saida")
+        st.success(f"✅ {n_lanc} lançamentos carregados · Entradas R$ {total_ent_b:,.0f} · Saídas R$ {total_sai_b:,.0f} · Saldo R$ {total_ent_b-total_sai_b:,.0f}".replace(",","."), icon="🗂️")
+
     def novo_id():
         return str(_uuid.uuid4())[:8].upper()
 
@@ -2281,17 +2440,19 @@ with t_adm:
         st.markdown("#### 💾 Dados")
         if st.session_state.lancamentos:
             j = json.dumps(st.session_state.lancamentos, ensure_ascii=False, indent=2)
-            st.download_button("⬇ Exportar JSON", j,
+            st.download_button("⬇ Baixar JSON (backup)", j,
                 file_name="gestao_operacional_pudo.json",
                 mime="application/json", use_container_width=True)
 
-            # CSV
-            df_exp = pd.DataFrame(st.session_state.lancamentos)
-            csv_str = df_exp.to_csv(index=False, sep=";", decimal=",", encoding="utf-8-sig")
-            st.download_button("⬇ Exportar CSV (Excel)", csv_str,
-                file_name="gestao_operacional_pudo.csv",
-                mime="text/csv", use_container_width=True)
+            # Excel formatado com 4 abas
+            xl_g = excel_gestao(st.session_state.lancamentos)
+            if xl_g:
+                st.download_button("📊 Exportar Excel (.xlsx)", xl_g,
+                    file_name="gestao_operacional_pudo.xlsx",
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    use_container_width=True)
 
+        st.caption("💡 Salve o JSON após cada sessão. Importe para restaurar o histórico completo.")
         upf = st.file_uploader("⬆ Importar JSON", type="json", key="up_adm")
         if upf:
             try:
